@@ -1,0 +1,6 @@
+{
+  "summary":  "Plan for the next development phase of MARSHGO: implementing real-time GPS vehicle tracking with live turn-by-turn navigation, GTFS-RT feed simulation with real-time delays and vehicle position updates across Ukrainian routes, and gesture-driven draggable bottom sheets for native mobile tactile feel.",
+  "updatedAt":  "2026-10-11T19:28:36.155142048Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}

@@ -1,0 +1,6 @@
+{
+  "name": "MARSHGO — Розумні поїздки Україна",
+  "description": "Повноцінна мультимодальна транспортна платформа: попутники, міський транспорт, міжміські поїздки, карта та MarshPass квитки в одному додатку.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
