@@ -1413,3 +1413,10 @@ Owner-approved image: `docs/design/reference/canonical-home-owner-2026-11-11.jpg
 2. Preserve all existing MarshGO2 unstaged edits and the six original repositories. Do not stage target prototype edits, import `.release` archives, or rewrite branch history.
 3. No build/test/browser validation or push has occurred. Host is resource-constrained (17 GiB free disk, 35% free RAM, 9.54 GiB encrypted swap, Docker renderer ~119% CPU); defer heavy checks and git pack/push until load drops.
 4. Next: inspect the exact index after staging only `apps/` (respecting ignored `apps/server/.release/`), `orchestration/`, `.gitignore`, and `MONOREPO_INTEGRATION.md`; then validate workspace integration and push this branch only when resource gates permit. Production remains NOT_RELEASED.
+
+## CURRENT RESUME — MarshGO2 snapshot pushed, 2026-11-11 18:53 EET
+
+1. `codex/consolidate-canonical-repos` is pushed to MarshGO2 at `78b86023c2bb82c39b7ca6a70673a0bbfa1a51fa`; remote SHA was verified. Review branch: https://github.com/dima1203oleg/MarshGO2/tree/codex/consolidate-canonical-repos.
+2. Source snapshots are in `apps/{site,server,ios,admin,partner}` and `orchestration/`. See `MONOREPO_INTEGRATION.md` for source pins, captured dirty state, and exclusions. Existing MarshGO2 edits remain unstaged and uncommitted.
+3. This is not yet a runnable unified workspace: root workspace/build/test commands and cross-app wiring remain. No build, test, browser check, or production deployment was run. Production remains NOT_RELEASED.
+4. Defer heavy checks while Virtualization/Docker load is elevated. Latest resources: disk 17 GiB free, RAM free 34%, swap 9.53 GiB; no cleanup performed.

@@ -12228,3 +12228,11 @@ Next action: once memory is stably ≥35% and system load settles, build/visuall
 - Existing MarshGO2 edits (26 paths) remain unstaged and uncommitted. No source files or caches were deleted. Release snapshots under copied `apps/server/.release/` remain local and are now ignored; environment templates only were found, and the bounded private-key/token filename/content scan found no matches.
 - Validation is incomplete: no builds, tests, browser runs, commits, or pushes in this checkpoint. Host gate: disk 17 GiB free, RAM free 35%, encrypted swap 9.54 GiB, Docker Desktop renderer ~119% CPU. Defer pack/build/test work until load eases. Production remains NOT_RELEASED.
 - Next: review staged paths with user edits excluded; verify workspace commands and inter-app contracts; run one bounded check when resources permit; then push only the isolated integration branch (never `main`).
+
+## 2026-11-11 18:53 EET — MarshGO2 integration snapshot pushed
+
+- Pushed branch `codex/consolidate-canonical-repos` to `origin` at exact SHA `78b86023c2bb82c39b7ca6a70673a0bbfa1a51fa`; `git ls-remote` matched the local commit. The source-tree snapshot contains 1,476 files / 210,575 insertions. No force push or main-branch update.
+- The original MarshGO2 worktree edits remain unstaged and uncommitted. Six source repositories remain unchanged; source dirty state was copied into snapshots but original histories are not imported.
+- Integration remains PARTIAL: no workspace wiring, build, automated tests, authenticated API integration, browser acceptance, or production deployment. Broad whitespace check identified legacy whitespace in imported source; no mass cleanup was applied. Focused check of the integration manifest and ignore rule passed. Production remains NOT_RELEASED.
+- Resources after push: disk 17 GiB free, RAM 34% free, encrypted swap 9,530 MiB, Virtualization ~89% CPU and Docker backend ~7%. Defer heavy validation. No cache or evidence artifact was removed.
+- Next: review the target workspace/package architecture, then add root-level workspace scripts and API/site/iOS contract wiring in a separate commit. Run bounded validation only when host load and disk gates permit.

@@ -39,7 +39,15 @@ this snapshot.
 
 Before calling this a unified, usable monorepo, add and verify workspace-level
 build/test commands, API-to-Site configuration, iOS project references, and
-cross-app contract checks. Run those checks only when local resource gates allow.
-Then review the exact staged diff and push this branch (never `main`).
+cross-app contract checks. This source snapshot has been committed and pushed,
+but no build, tests, or browser acceptance have run. The existing MarshGO2 root
+app remains in place, so the repository is not yet wired as one runnable
+workspace. Run the checks only when local resource gates allow.
+
+Initial pushed snapshot: `78b86023c2bb82c39b7ca6a70673a0bbfa1a51fa` on
+`codex/consolidate-canonical-repos`. The branch is available at
+`https://github.com/dima1203oleg/MarshGO2/tree/codex/consolidate-canonical-repos`.
+To open a review, use
+`https://github.com/dima1203oleg/MarshGO2/pull/new/codex/consolidate-canonical-repos`.
 
 Production status remains **NOT_RELEASED**.
