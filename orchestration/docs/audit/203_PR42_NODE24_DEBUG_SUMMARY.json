@@ -1,0 +1,77 @@
+{
+  "serverSha": "a403a51a203d9d89685c10c69658c8fd95b70e9b",
+  "feedSha256": "bb4ac0ce9127b4967ad889379f523b04b84a0bb033814aa8c844526b42078164",
+  "runtime": "v24.21.0",
+  "feed": {
+    "routes": 72,
+    "stops": 1071,
+    "trips": 15716
+  },
+  "query": {
+    "departureStart": "2026-10-23T05:00:00.000Z",
+    "departureWindowMinutes": 30,
+    "maximumJourneyHours": 6,
+    "maximumTransfers": 2,
+    "resultLimit": 100,
+    "serialSearchesPerOd": 2
+  },
+  "sampledProcessMemoryMiB": {
+    "maxRss": 563,
+    "maxV8HeapUsed": 905,
+    "note": "Stage samples during serial benchmark only; not isolated peak or concurrency/load evidence."
+  },
+  "results": [
+    {
+      "id": "holosko-sykhiv",
+      "estimatedGraphDemand": 415997,
+      "retainedGraphSegments": 100000,
+      "searchSteps": 109242,
+      "firstLegs": 411,
+      "candidateResults": 1611,
+      "candidateLegCounts": [1, 753, 801],
+      "truncation": {
+        "stopSelection": false,
+        "candidateGraph": true,
+        "searchBudget": true,
+        "candidateSampling": true
+      },
+      "elapsedMsRange": [2376.19, 3615.51],
+      "orderedResultIdSha256": "8c6a34794c534462cf24873d5c17fd1c8fe2d15c07a558a6d65e68e0ac4ce2ac"
+    },
+    {
+      "id": "naukova-sykhiv",
+      "estimatedGraphDemand": 194024,
+      "retainedGraphSegments": 100000,
+      "searchSteps": 94745,
+      "firstLegs": 908,
+      "candidateResults": 1630,
+      "candidateLegCounts": [26, 772, 791],
+      "truncation": {
+        "stopSelection": false,
+        "candidateGraph": true,
+        "searchBudget": true,
+        "candidateSampling": true
+      },
+      "elapsedMsRange": [1611.21, 2056.03],
+      "orderedResultIdSha256": "fe39dcd31269de4f43df03129f0c5c8b67ce5f792978399ead639070cf9601d4"
+    },
+    {
+      "id": "rynok-dubliany",
+      "estimatedGraphDemand": 262267,
+      "retainedGraphSegments": 100000,
+      "searchSteps": 226336,
+      "firstLegs": 1738,
+      "candidateResults": 1533,
+      "candidateLegCounts": [6, 704, 781],
+      "truncation": {
+        "stopSelection": false,
+        "candidateGraph": true,
+        "searchBudget": true,
+        "candidateSampling": true
+      },
+      "elapsedMsRange": [3069.49, 3200.63],
+      "orderedResultIdSha256": "3f7c5120913cc2ded010633bf137e1d0ee8cd4fbebd87f85d026e136b12270ce"
+    }
+  ],
+  "decision": "Baseline remains deterministic but incomplete. Do not promote as complete or change truncation flags."
+}

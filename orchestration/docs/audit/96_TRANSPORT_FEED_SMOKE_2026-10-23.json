@@ -1,0 +1,1947 @@
+{
+  "checkedAt": "2026-10-23T06:12:53.039Z",
+  "summary": {
+    "catalogRows": 43,
+    "checked": 38,
+    "skipped": 5,
+    "healthy": 32,
+    "degraded": 4,
+    "offline": 2,
+    "note": "Read-only probe; HEALTHY means feed health only, not commercial permission, route-search integration, price, availability or booking."
+  },
+  "catalog": [
+    {
+      "name": "Львівавтодор — розклад (GTFS)",
+      "city": "Львів",
+      "sourceType": "gtfs",
+      "state": "HEALTHY",
+      "counts": {
+        "stops": 1071,
+        "routes": 72,
+        "trips": 15716,
+        "stopTimes": 426685,
+        "routes_bus": 55,
+        "routes_tram": 8,
+        "routes_trolleybus": 9
+      },
+      "bbox": [
+        23.860631,
+        49.772404,
+        24.16313,
+        49.975036
+      ],
+      "responseMs": 3100,
+      "checks": [
+        {
+          "name": "Feed accessible",
+          "ok": true,
+          "detail": "3668 KB"
+        },
+        {
+          "name": "Valid GTFS zip",
+          "ok": true
+        },
+        {
+          "name": "Required files",
+          "ok": true,
+          "detail": "all present"
+        },
+        {
+          "name": "Stops",
+          "ok": true,
+          "detail": "1071 stops, 0 with invalid coordinates"
+        },
+        {
+          "name": "Routes and trips",
+          "ok": true,
+          "detail": "72 routes, 15716 trips"
+        },
+        {
+          "name": "Calendar",
+          "ok": true
+        },
+        {
+          "name": "Scheduled service in next 7 days",
+          "ok": true,
+          "detail": "at least one trip is scheduled"
+        }
+      ]
+    },
+    {
+      "name": "Львівавтодор — realtime позиції (GTFS-RT)",
+      "city": "Львів",
+      "sourceType": "gtfs_rt",
+      "state": "HEALTHY",
+      "counts": {
+        "vehicles": 625,
+        "tripUpdates": 0,
+        "alerts": 0,
+        "ageSeconds": 3
+      },
+      "bbox": [
+        23.4830379486084,
+        49.34568405151367,
+        24.16065788269043,
+        50.04072952270508
+      ],
+      "responseMs": 359,
+      "checks": [
+        {
+          "name": "Feed accessible",
+          "ok": true
+        },
+        {
+          "name": "Valid GTFS-Realtime protobuf",
+          "ok": true
+        },
+        {
+          "name": "Entities",
+          "ok": true,
+          "detail": "625 vehicles, 0 trip updates, 0 alerts"
+        },
+        {
+          "name": "Positions are in Ukraine",
+          "ok": true,
+          "detail": "23.48, 49.35, 24.16, 50.04"
+        },
+        {
+          "name": "Freshness",
+          "ok": true,
+          "detail": "3s old"
+        }
+      ]
+    },
+    {
+      "name": "Львівавтодор — затримки (GTFS-RT)",
+      "city": "Львів",
+      "sourceType": "gtfs_rt",
+      "state": "HEALTHY",
+      "counts": {
+        "vehicles": 0,
+        "tripUpdates": 700,
+        "alerts": 0,
+        "ageSeconds": 12
+      },
+      "responseMs": 218,
+      "checks": [
+        {
+          "name": "Feed accessible",
+          "ok": true
+        },
+        {
+          "name": "Valid GTFS-Realtime protobuf",
+          "ok": true
+        },
+        {
+          "name": "Entities",
+          "ok": true,
+          "detail": "0 vehicles, 700 trip updates, 0 alerts"
+        },
+        {
+          "name": "Positions are in Ukraine",
+          "ok": true,
+          "detail": "no positions"
+        },
+        {
+          "name": "Freshness",
+          "ok": true,
+          "detail": "12s old"
+        }
+      ]
+    },
+    {
+      "name": "Стрийська міська рада — розклад (GTFS)",
+      "city": "Стрий",
+      "sourceType": "gtfs",
+      "state": "HEALTHY",
+      "counts": {
+        "stops": 295,
+        "routes": 34,
+        "trips": 1061,
+        "stopTimes": 13874,
+        "routes_bus": 34
+      },
+      "bbox": [
+        23.482595,
+        49.117043,
+        24.095906,
+        49.372468
+      ],
+      "responseMs": 567,
+      "checks": [
+        {
+          "name": "Feed accessible",
+          "ok": true,
+          "detail": "436 KB"
+        },
+        {
+          "name": "Valid GTFS zip",
+          "ok": true
+        },
+        {
+          "name": "Required files",
+          "ok": true,
+          "detail": "all present"
+        },
+        {
+          "name": "Stops",
+          "ok": true,
+          "detail": "295 stops, 0 with invalid coordinates"
+        },
+        {
+          "name": "Routes and trips",
+          "ok": true,
+          "detail": "34 routes, 1061 trips"
+        },
+        {
+          "name": "Calendar",
+          "ok": true
+        },
+        {
+          "name": "Scheduled service in next 7 days",
+          "ok": true,
+          "detail": "at least one trip is scheduled"
+        }
+      ]
+    },
+    {
+      "name": "Ужгородська міська рада — розклад (GTFS)",
+      "city": "Ужгород",
+      "sourceType": "gtfs",
+      "state": "HEALTHY",
+      "counts": {
+        "stops": 217,
+        "routes": 18,
+        "trips": 2376,
+        "stopTimes": 46460,
+        "routes_bus": 18
+      },
+      "bbox": [
+        22.255109,
+        48.57205,
+        22.362255,
+        48.654448
+      ],
+      "responseMs": 364,
+      "checks": [
+        {
+          "name": "Feed accessible",
+          "ok": true,
+          "detail": "441 KB"
+        },
+        {
+          "name": "Valid GTFS zip",
+          "ok": true
+        },
+        {
+          "name": "Required files",
+          "ok": true,
+          "detail": "all present"
+        },
+        {
+          "name": "Stops",
+          "ok": true,
+          "detail": "217 stops, 0 with invalid coordinates"
+        },
+        {
+          "name": "Routes and trips",
+          "ok": true,
+          "detail": "18 routes, 2376 trips"
+        },
+        {
+          "name": "Calendar",
+          "ok": true
+        },
+        {
+          "name": "Scheduled service in next 7 days",
+          "ok": true,
+          "detail": "at least one trip is scheduled"
+        }
+      ]
+    },
+    {
+      "name": "inbus.ua — розклад (GTFS)",
+      "city": "Україна",
+      "sourceType": "gtfs",
+      "state": "OFFLINE",
+      "counts": {
+        "stops": 2,
+        "routes": 1,
+        "trips": 45,
+        "stopTimes": 90,
+        "routes_bus": 1
+      },
+      "bbox": [
+        30.219599,
+        48.761138,
+        30.519691,
+        50.406498
+      ],
+      "responseMs": 220,
+      "checks": [
+        {
+          "name": "Feed accessible",
+          "ok": true,
+          "detail": "4 KB"
+        },
+        {
+          "name": "Valid GTFS zip",
+          "ok": true
+        },
+        {
+          "name": "Required files",
+          "ok": true,
+          "detail": "all present"
+        },
+        {
+          "name": "Stops",
+          "ok": true,
+          "detail": "2 stops, 0 with invalid coordinates"
+        },
+        {
+          "name": "Routes and trips",
+          "ok": true,
+          "detail": "1 routes, 45 trips"
+        },
+        {
+          "name": "Calendar",
+          "ok": true
+        },
+        {
+          "name": "Scheduled service in next 7 days",
+          "ok": false,
+          "detail": "no active trip service in the next 7 days"
+        }
+      ],
+      "error": "GTFS feed has no service scheduled in the next 7 days"
+    },
+    {
+      "name": "Київ — розклад (GTFS)",
+      "city": "Київ",
+      "sourceType": "gtfs",
+      "state": "SKIPPED",
+      "reason": "insecure_endpoint"
+    },
+    {
+      "name": "Київ — realtime (GTFS-RT)",
+      "city": "Київ",
+      "sourceType": "gtfs_rt",
+      "state": "SKIPPED",
+      "reason": "insecure_endpoint"
+    },
+    {
+      "name": "Одеса — розклад (GTFS)",
+      "city": "Одеса",
+      "sourceType": "gtfs",
+      "state": "SKIPPED",
+      "reason": "requires_credentials"
+    },
+    {
+      "name": "КП «Бучатранссервіс» — розклад (GTFS)",
+      "city": "Буча",
+      "sourceType": "gtfs",
+      "state": "SKIPPED",
+      "reason": "requires_credentials"
+    },
+    {
+      "name": "Рівне — розклад (GTFS, Dozor)",
+      "city": "Рівне",
+      "sourceType": "gtfs",
+      "state": "HEALTHY",
+      "counts": {
+        "stops": 48,
+        "routes": 2,
+        "trips": 329,
+        "stopTimes": 5340,
+        "routes_bus": 2
+      },
+      "bbox": [
+        26.224532,
+        50.599138,
+        26.280387,
+        50.6393
+      ],
+      "responseMs": 440,
+      "checks": [
+        {
+          "name": "Feed accessible",
+          "ok": true,
+          "detail": "20 KB"
+        },
+        {
+          "name": "Valid GTFS zip",
+          "ok": true
+        },
+        {
+          "name": "Required files",
+          "ok": true,
+          "detail": "all present"
+        },
+        {
+          "name": "Stops",
+          "ok": true,
+          "detail": "48 stops, 0 with invalid coordinates"
+        },
+        {
+          "name": "Routes and trips",
+          "ok": true,
+          "detail": "2 routes, 329 trips"
+        },
+        {
+          "name": "Calendar",
+          "ok": true
+        },
+        {
+          "name": "Scheduled service in next 7 days",
+          "ok": true,
+          "detail": "at least one trip is scheduled"
+        }
+      ]
+    },
+    {
+      "name": "Рівне — позиції (GTFS-RT, Dozor)",
+      "city": "Рівне",
+      "sourceType": "gtfs_rt",
+      "state": "DEGRADED",
+      "counts": {
+        "vehicles": 0,
+        "tripUpdates": 0,
+        "alerts": 0,
+        "ageSeconds": 13
+      },
+      "responseMs": 21,
+      "checks": [
+        {
+          "name": "Feed accessible",
+          "ok": true
+        },
+        {
+          "name": "Valid GTFS-Realtime protobuf",
+          "ok": true
+        },
+        {
+          "name": "Entities",
+          "ok": false,
+          "detail": "0 vehicles, 0 trip updates, 0 alerts"
+        },
+        {
+          "name": "Positions are in Ukraine",
+          "ok": true,
+          "detail": "no positions"
+        },
+        {
+          "name": "Freshness",
+          "ok": true,
+          "detail": "13s old"
+        }
+      ]
+    },
+    {
+      "name": "Івано-Франківськ — розклад (GTFS, Dozor)",
+      "city": "Івано-Франківськ",
+      "sourceType": "gtfs",
+      "state": "HEALTHY",
+      "counts": {
+        "stops": 291,
+        "routes": 21,
+        "trips": 2113,
+        "stopTimes": 43433,
+        "routes_bus": 19,
+        "routes_trolleybus": 2
+      },
+      "bbox": [
+        24.547273,
+        48.838119,
+        24.839343,
+        49.043163
+      ],
+      "responseMs": 630,
+      "checks": [
+        {
+          "name": "Feed accessible",
+          "ok": true,
+          "detail": "158 KB"
+        },
+        {
+          "name": "Valid GTFS zip",
+          "ok": true
+        },
+        {
+          "name": "Required files",
+          "ok": true,
+          "detail": "all present"
+        },
+        {
+          "name": "Stops",
+          "ok": true,
+          "detail": "291 stops, 1 with invalid coordinates"
+        },
+        {
+          "name": "Routes and trips",
+          "ok": true,
+          "detail": "21 routes, 2113 trips"
+        },
+        {
+          "name": "Calendar",
+          "ok": true
+        },
+        {
+          "name": "Scheduled service in next 7 days",
+          "ok": true,
+          "detail": "at least one trip is scheduled"
+        }
+      ]
+    },
+    {
+      "name": "Івано-Франківськ — позиції (GTFS-RT, Dozor)",
+      "city": "Івано-Франківськ",
+      "sourceType": "gtfs_rt",
+      "state": "HEALTHY",
+      "counts": {
+        "vehicles": 58,
+        "tripUpdates": 0,
+        "alerts": 0,
+        "ageSeconds": 5
+      },
+      "bbox": [
+        24.683822631835938,
+        48.8670768737793,
+        24.764474868774414,
+        48.95846939086914
+      ],
+      "responseMs": 20,
+      "checks": [
+        {
+          "name": "Feed accessible",
+          "ok": true
+        },
+        {
+          "name": "Valid GTFS-Realtime protobuf",
+          "ok": true
+        },
+        {
+          "name": "Entities",
+          "ok": true,
+          "detail": "58 vehicles, 0 trip updates, 0 alerts"
+        },
+        {
+          "name": "Positions are in Ukraine",
+          "ok": true,
+          "detail": "24.68, 48.87, 24.76, 48.96"
+        },
+        {
+          "name": "Freshness",
+          "ok": true,
+          "detail": "5s old"
+        }
+      ]
+    },
+    {
+      "name": "Ужгород — позиції (GTFS-RT, Dozor)",
+      "city": "Ужгород",
+      "sourceType": "gtfs_rt",
+      "state": "HEALTHY",
+      "counts": {
+        "vehicles": 66,
+        "tripUpdates": 0,
+        "alerts": 0,
+        "ageSeconds": 16
+      },
+      "bbox": [
+        22.257469177246094,
+        48.57802963256836,
+        22.33378791809082,
+        48.63954162597656
+      ],
+      "responseMs": 24,
+      "checks": [
+        {
+          "name": "Feed accessible",
+          "ok": true
+        },
+        {
+          "name": "Valid GTFS-Realtime protobuf",
+          "ok": true
+        },
+        {
+          "name": "Entities",
+          "ok": true,
+          "detail": "66 vehicles, 0 trip updates, 0 alerts"
+        },
+        {
+          "name": "Positions are in Ukraine",
+          "ok": true,
+          "detail": "22.26, 48.58, 22.33, 48.64"
+        },
+        {
+          "name": "Freshness",
+          "ok": true,
+          "detail": "16s old"
+        }
+      ]
+    },
+    {
+      "name": "Ужгород — розклад (GTFS, Dozor)",
+      "city": "Ужгород",
+      "sourceType": "gtfs",
+      "state": "HEALTHY",
+      "counts": {
+        "stops": 181,
+        "routes": 17,
+        "trips": 1400,
+        "stopTimes": 24760,
+        "routes_bus": 17
+      },
+      "bbox": [
+        22.255172,
+        5,
+        48.637465,
+        48.654411
+      ],
+      "responseMs": 250,
+      "checks": [
+        {
+          "name": "Feed accessible",
+          "ok": true,
+          "detail": "92 KB"
+        },
+        {
+          "name": "Valid GTFS zip",
+          "ok": true
+        },
+        {
+          "name": "Required files",
+          "ok": true,
+          "detail": "all present"
+        },
+        {
+          "name": "Stops",
+          "ok": true,
+          "detail": "181 stops, 0 with invalid coordinates"
+        },
+        {
+          "name": "Routes and trips",
+          "ok": true,
+          "detail": "17 routes, 1400 trips"
+        },
+        {
+          "name": "Calendar",
+          "ok": true
+        },
+        {
+          "name": "Scheduled service in next 7 days",
+          "ok": true,
+          "detail": "at least one trip is scheduled"
+        }
+      ]
+    },
+    {
+      "name": "Стрий — позиції (GTFS-RT)",
+      "city": "Стрий",
+      "sourceType": "gtfs_rt",
+      "state": "HEALTHY",
+      "counts": {
+        "vehicles": 32,
+        "tripUpdates": 0,
+        "alerts": 0,
+        "ageSeconds": 6
+      },
+      "bbox": [
+        23.74601173400879,
+        49.15229415893555,
+        24.04547119140625,
+        49.362571716308594
+      ],
+      "responseMs": 30,
+      "checks": [
+        {
+          "name": "Feed accessible",
+          "ok": true
+        },
+        {
+          "name": "Valid GTFS-Realtime protobuf",
+          "ok": true
+        },
+        {
+          "name": "Entities",
+          "ok": true,
+          "detail": "32 vehicles, 0 trip updates, 0 alerts"
+        },
+        {
+          "name": "Positions are in Ukraine",
+          "ok": true,
+          "detail": "23.75, 49.15, 24.05, 49.36"
+        },
+        {
+          "name": "Freshness",
+          "ok": true,
+          "detail": "6s old"
+        }
+      ]
+    },
+    {
+      "name": "Трускавець — позиції (GTFS-RT)",
+      "city": "Трускавець",
+      "sourceType": "gtfs_rt",
+      "state": "DEGRADED",
+      "counts": {
+        "vehicles": 0,
+        "tripUpdates": 0,
+        "alerts": 0,
+        "ageSeconds": 1
+      },
+      "responseMs": 33,
+      "checks": [
+        {
+          "name": "Feed accessible",
+          "ok": true
+        },
+        {
+          "name": "Valid GTFS-Realtime protobuf",
+          "ok": true
+        },
+        {
+          "name": "Entities",
+          "ok": false,
+          "detail": "0 vehicles, 0 trip updates, 0 alerts"
+        },
+        {
+          "name": "Positions are in Ukraine",
+          "ok": true,
+          "detail": "no positions"
+        },
+        {
+          "name": "Freshness",
+          "ok": true,
+          "detail": "1s old"
+        }
+      ]
+    },
+    {
+      "name": "Чорноморськ — розклад (GTFS)",
+      "city": "Чорноморськ",
+      "sourceType": "gtfs",
+      "state": "OFFLINE",
+      "counts": {
+        "stops": 152,
+        "routes": 6,
+        "trips": 16,
+        "stopTimes": 406,
+        "routes_bus": 6
+      },
+      "bbox": [
+        30.619382,
+        46.283197,
+        30.666426,
+        46.363682
+      ],
+      "responseMs": 356,
+      "checks": [
+        {
+          "name": "Feed accessible",
+          "ok": true,
+          "detail": "67 KB"
+        },
+        {
+          "name": "Valid GTFS zip",
+          "ok": true
+        },
+        {
+          "name": "Required files",
+          "ok": true,
+          "detail": "all present"
+        },
+        {
+          "name": "Stops",
+          "ok": true,
+          "detail": "152 stops, 0 with invalid coordinates"
+        },
+        {
+          "name": "Routes and trips",
+          "ok": true,
+          "detail": "6 routes, 16 trips"
+        },
+        {
+          "name": "Calendar",
+          "ok": true
+        },
+        {
+          "name": "Scheduled service in next 7 days",
+          "ok": false,
+          "detail": "no active trip service in the next 7 days"
+        }
+      ],
+      "error": "GTFS feed has no service scheduled in the next 7 days"
+    },
+    {
+      "name": "Червоноград — позиції (EasyWay JSON)",
+      "city": "Червоноград",
+      "sourceType": "json",
+      "state": "HEALTHY",
+      "counts": {
+        "vehicles": 17,
+        "vehicles_bus": 8,
+        "vehicles_marshrutka": 9,
+        "ageSeconds": 17
+      },
+      "bbox": [
+        24.172674,
+        50.296443,
+        24.253044,
+        50.402367
+      ],
+      "responseMs": 301,
+      "checks": [
+        {
+          "name": "Feed accessible",
+          "ok": true
+        },
+        {
+          "name": "Vehicle list found",
+          "ok": true,
+          "detail": "17 entries"
+        },
+        {
+          "name": "Coordinates",
+          "ok": true,
+          "detail": "17 valid, 0 invalid"
+        },
+        {
+          "name": "Freshness",
+          "ok": true,
+          "detail": "17s old"
+        }
+      ]
+    },
+    {
+      "name": "Конотоп — позиції (EasyWay JSON)",
+      "city": "Конотоп",
+      "sourceType": "json",
+      "state": "DEGRADED",
+      "counts": {},
+      "responseMs": 60,
+      "checks": [
+        {
+          "name": "Feed accessible",
+          "ok": true
+        },
+        {
+          "name": "Vehicle list found",
+          "ok": false,
+          "detail": "0 entries"
+        }
+      ],
+      "error": "No vehicles in the feed (it may be empty at night)"
+    },
+    {
+      "name": "Ужгород — позиції (Dozor JSON)",
+      "city": "Ужгород",
+      "sourceType": "json",
+      "state": "HEALTHY",
+      "counts": {
+        "vehicles": 84,
+        "vehicles_bus": 84
+      },
+      "bbox": [
+        22.257469,
+        48.578029,
+        28.661663,
+        50.26529
+      ],
+      "responseMs": 165,
+      "checks": [
+        {
+          "name": "Feed accessible",
+          "ok": true
+        },
+        {
+          "name": "Vehicle list found",
+          "ok": true,
+          "detail": "84 entries"
+        },
+        {
+          "name": "Coordinates",
+          "ok": true,
+          "detail": "84 valid, 0 invalid"
+        }
+      ]
+    },
+    {
+      "name": "Івано-Франківськ — позиції (Dozor JSON)",
+      "city": "Івано-Франківськ",
+      "sourceType": "json",
+      "state": "HEALTHY",
+      "counts": {
+        "vehicles": 155,
+        "vehicles_trolleybus": 32,
+        "vehicles_bus": 123
+      },
+      "bbox": [
+        24.635923,
+        48.816913,
+        24.767734,
+        49.005131
+      ],
+      "responseMs": 2231,
+      "checks": [
+        {
+          "name": "Feed accessible",
+          "ok": true
+        },
+        {
+          "name": "Vehicle list found",
+          "ok": true,
+          "detail": "155 entries"
+        },
+        {
+          "name": "Coordinates",
+          "ok": true,
+          "detail": "155 valid, 0 invalid"
+        }
+      ]
+    },
+    {
+      "name": "Дніпро — позиції (iCity JSON)",
+      "city": "Дніпро",
+      "sourceType": "json",
+      "state": "DEGRADED",
+      "counts": {
+        "vehicles": 95,
+        "vehicles_bus": 95,
+        "ageSeconds": 1
+      },
+      "bbox": [
+        34.3145016,
+        0.650465,
+        149.6797183,
+        48.5562583
+      ],
+      "responseMs": 1508,
+      "checks": [
+        {
+          "name": "Feed accessible",
+          "ok": true
+        },
+        {
+          "name": "Vehicle list found",
+          "ok": true,
+          "detail": "482 entries"
+        },
+        {
+          "name": "Coordinates",
+          "ok": false,
+          "detail": "95 valid, 387 invalid"
+        },
+        {
+          "name": "Freshness",
+          "ok": true,
+          "detail": "1s old"
+        }
+      ]
+    },
+    {
+      "name": "Суми — позиції (GTFS-RT)",
+      "city": "Суми",
+      "sourceType": "gtfs_rt",
+      "state": "SKIPPED",
+      "reason": "insecure_endpoint"
+    },
+    {
+      "name": "Полтава — позиції (EasyWay JSON)",
+      "city": "Полтава",
+      "sourceType": "json",
+      "state": "HEALTHY",
+      "counts": {
+        "vehicles": 183,
+        "vehicles_trolleybus": 26,
+        "vehicles_marshrutka": 129,
+        "vehicles_bus": 28,
+        "ageSeconds": -72
+      },
+      "bbox": [
+        34.32321,
+        32.190292,
+        44.890358,
+        49.672865
+      ],
+      "responseMs": 76,
+      "checks": [
+        {
+          "name": "Feed accessible",
+          "ok": true
+        },
+        {
+          "name": "Vehicle list found",
+          "ok": true,
+          "detail": "184 entries"
+        },
+        {
+          "name": "Coordinates",
+          "ok": true,
+          "detail": "183 valid, 1 invalid"
+        },
+        {
+          "name": "Freshness",
+          "ok": true,
+          "detail": "-72s old"
+        }
+      ]
+    },
+    {
+      "name": "VD-Express — міжміські автобуси (GTFS)",
+      "city": "Україна",
+      "sourceType": "gtfs",
+      "state": "HEALTHY",
+      "counts": {
+        "stops": 37,
+        "routes": 2,
+        "trips": 2,
+        "stopTimes": 72,
+        "routes_bus": 2
+      },
+      "bbox": [
+        11.346975456494,
+        43.819210775232,
+        33.421993728266,
+        49.83837856182
+      ],
+      "responseMs": 2574,
+      "checks": [
+        {
+          "name": "Feed accessible",
+          "ok": true,
+          "detail": "957 KB"
+        },
+        {
+          "name": "Valid GTFS zip",
+          "ok": true
+        },
+        {
+          "name": "Required files",
+          "ok": true,
+          "detail": "all present"
+        },
+        {
+          "name": "Stops",
+          "ok": true,
+          "detail": "37 stops, 0 with invalid coordinates"
+        },
+        {
+          "name": "Routes and trips",
+          "ok": true,
+          "detail": "2 routes, 2 trips"
+        },
+        {
+          "name": "Calendar",
+          "ok": true
+        },
+        {
+          "name": "Scheduled service in next 7 days",
+          "ok": true,
+          "detail": "at least one trip is scheduled"
+        }
+      ]
+    },
+    {
+      "name": "Укрзалізниця — розклад поїздів (GTFS)",
+      "city": "Україна",
+      "sourceType": "gtfs",
+      "state": "HEALTHY",
+      "counts": {
+        "stops": 167,
+        "routes": 122,
+        "trips": 122,
+        "stopTimes": 1251,
+        "routes_train": 119,
+        "routes_suburban": 3
+      },
+      "bbox": [
+        16.333965,
+        46.466717,
+        36.203278,
+        52.25159
+      ],
+      "responseMs": 12711,
+      "checks": [
+        {
+          "name": "Feed accessible",
+          "ok": true,
+          "detail": "6095 KB"
+        },
+        {
+          "name": "Valid GTFS zip",
+          "ok": true
+        },
+        {
+          "name": "Required files",
+          "ok": true,
+          "detail": "all present"
+        },
+        {
+          "name": "Stops",
+          "ok": true,
+          "detail": "167 stops, 0 with invalid coordinates"
+        },
+        {
+          "name": "Routes and trips",
+          "ok": true,
+          "detail": "122 routes, 122 trips"
+        },
+        {
+          "name": "Calendar",
+          "ok": true
+        },
+        {
+          "name": "Scheduled service in next 7 days",
+          "ok": true,
+          "detail": "at least one trip is scheduled"
+        }
+      ]
+    },
+    {
+      "name": "Київпастранс — розклад (GTFS)",
+      "city": "Київ",
+      "sourceType": "gtfs",
+      "state": "HEALTHY",
+      "counts": {
+        "stops": 1496,
+        "routes": 162,
+        "trips": 24259,
+        "stopTimes": 103914,
+        "routes_tram": 17,
+        "routes_trolleybus": 43,
+        "routes_bus": 102
+      },
+      "bbox": [
+        30.281478881835938,
+        50.22585678100586,
+        30.771907806396484,
+        50.5668830871582
+      ],
+      "responseMs": 4786,
+      "checks": [
+        {
+          "name": "Feed accessible",
+          "ok": true,
+          "detail": "1185 KB"
+        },
+        {
+          "name": "Valid GTFS zip",
+          "ok": true
+        },
+        {
+          "name": "Required files",
+          "ok": true,
+          "detail": "all present"
+        },
+        {
+          "name": "Stops",
+          "ok": true,
+          "detail": "1496 stops, 0 with invalid coordinates"
+        },
+        {
+          "name": "Routes and trips",
+          "ok": true,
+          "detail": "162 routes, 24259 trips"
+        },
+        {
+          "name": "Calendar",
+          "ok": true
+        },
+        {
+          "name": "Scheduled service in next 7 days",
+          "ok": true,
+          "detail": "at least one trip is scheduled"
+        }
+      ]
+    },
+    {
+      "name": "Кам’янець-Подільський — розклад (GTFS, Dozor)",
+      "city": "Кам’янець-Подільський",
+      "sourceType": "gtfs",
+      "state": "HEALTHY",
+      "counts": {
+        "stops": 236,
+        "routes": 15,
+        "trips": 2408,
+        "stopTimes": 55396,
+        "routes_bus": 15
+      },
+      "bbox": [
+        26.535853,
+        48.649389,
+        26.622157,
+        48.73093
+      ],
+      "responseMs": 2126,
+      "checks": [
+        {
+          "name": "Feed accessible",
+          "ok": true,
+          "detail": "186 KB"
+        },
+        {
+          "name": "Valid GTFS zip",
+          "ok": true
+        },
+        {
+          "name": "Required files",
+          "ok": true,
+          "detail": "all present"
+        },
+        {
+          "name": "Stops",
+          "ok": true,
+          "detail": "236 stops, 0 with invalid coordinates"
+        },
+        {
+          "name": "Routes and trips",
+          "ok": true,
+          "detail": "15 routes, 2408 trips"
+        },
+        {
+          "name": "Calendar",
+          "ok": true
+        },
+        {
+          "name": "Scheduled service in next 7 days",
+          "ok": true,
+          "detail": "at least one trip is scheduled"
+        }
+      ]
+    },
+    {
+      "name": "Кам’янець-Подільський — позиції (Dozor JSON)",
+      "city": "Кам’янець-Подільський",
+      "sourceType": "json",
+      "state": "HEALTHY",
+      "counts": {
+        "vehicles": 143,
+        "vehicles_bus": 143
+      },
+      "bbox": [
+        26.496418,
+        48.596801,
+        28.660575,
+        50.265315
+      ],
+      "responseMs": 146,
+      "checks": [
+        {
+          "name": "Feed accessible",
+          "ok": true
+        },
+        {
+          "name": "Vehicle list found",
+          "ok": true,
+          "detail": "143 entries"
+        },
+        {
+          "name": "Coordinates",
+          "ok": true,
+          "detail": "143 valid, 0 invalid"
+        }
+      ]
+    },
+    {
+      "name": "Біла Церква — розклад (GTFS, Dozor)",
+      "city": "Біла Церква",
+      "sourceType": "gtfs",
+      "state": "HEALTHY",
+      "counts": {
+        "stops": 422,
+        "routes": 29,
+        "trips": 255,
+        "stopTimes": 6616,
+        "routes_trolleybus": 4,
+        "routes_bus": 25
+      },
+      "bbox": [
+        29.983346,
+        49.719876,
+        30.283631,
+        49.933304
+      ],
+      "responseMs": 808,
+      "checks": [
+        {
+          "name": "Feed accessible",
+          "ok": true,
+          "detail": "34 KB"
+        },
+        {
+          "name": "Valid GTFS zip",
+          "ok": true
+        },
+        {
+          "name": "Required files",
+          "ok": true,
+          "detail": "all present"
+        },
+        {
+          "name": "Stops",
+          "ok": true,
+          "detail": "422 stops, 0 with invalid coordinates"
+        },
+        {
+          "name": "Routes and trips",
+          "ok": true,
+          "detail": "29 routes, 255 trips"
+        },
+        {
+          "name": "Calendar",
+          "ok": true
+        },
+        {
+          "name": "Scheduled service in next 7 days",
+          "ok": true,
+          "detail": "at least one trip is scheduled"
+        }
+      ]
+    },
+    {
+      "name": "Біла Церква — позиції (Dozor JSON)",
+      "city": "Біла Церква",
+      "sourceType": "json",
+      "state": "HEALTHY",
+      "counts": {
+        "vehicles": 142,
+        "vehicles_bus": 135,
+        "vehicles_trolleybus": 7
+      },
+      "bbox": [
+        -77.050053,
+        -12.048438,
+        32.12397,
+        50.6402
+      ],
+      "responseMs": 70,
+      "checks": [
+        {
+          "name": "Feed accessible",
+          "ok": true
+        },
+        {
+          "name": "Vehicle list found",
+          "ok": true,
+          "detail": "142 entries"
+        },
+        {
+          "name": "Coordinates",
+          "ok": true,
+          "detail": "142 valid, 0 invalid"
+        }
+      ]
+    },
+    {
+      "name": "Хмельницький — розклад (GTFS, Dozor)",
+      "city": "Хмельницький",
+      "sourceType": "gtfs",
+      "state": "HEALTHY",
+      "counts": {
+        "stops": 261,
+        "routes": 28,
+        "trips": 683,
+        "stopTimes": 15990,
+        "routes_bus": 16,
+        "routes_trolleybus": 12
+      },
+      "bbox": [
+        26.921013,
+        49.380355,
+        27.070738,
+        49.456681
+      ],
+      "responseMs": 1092,
+      "checks": [
+        {
+          "name": "Feed accessible",
+          "ok": true,
+          "detail": "61 KB"
+        },
+        {
+          "name": "Valid GTFS zip",
+          "ok": true
+        },
+        {
+          "name": "Required files",
+          "ok": true,
+          "detail": "all present"
+        },
+        {
+          "name": "Stops",
+          "ok": true,
+          "detail": "261 stops, 0 with invalid coordinates"
+        },
+        {
+          "name": "Routes and trips",
+          "ok": true,
+          "detail": "28 routes, 683 trips"
+        },
+        {
+          "name": "Calendar",
+          "ok": true
+        },
+        {
+          "name": "Scheduled service in next 7 days",
+          "ok": true,
+          "detail": "at least one trip is scheduled"
+        }
+      ]
+    },
+    {
+      "name": "Олександрія — розклад (GTFS, Dozor)",
+      "city": "Олександрія",
+      "sourceType": "gtfs",
+      "state": "HEALTHY",
+      "counts": {
+        "stops": 217,
+        "routes": 17,
+        "trips": 218,
+        "stopTimes": 4416,
+        "routes_bus": 17
+      },
+      "bbox": [
+        32.972394,
+        48.57278,
+        33.15777,
+        48.708451
+      ],
+      "responseMs": 35,
+      "checks": [
+        {
+          "name": "Feed accessible",
+          "ok": true,
+          "detail": "20 KB"
+        },
+        {
+          "name": "Valid GTFS zip",
+          "ok": true
+        },
+        {
+          "name": "Required files",
+          "ok": true,
+          "detail": "all present"
+        },
+        {
+          "name": "Stops",
+          "ok": true,
+          "detail": "217 stops, 0 with invalid coordinates"
+        },
+        {
+          "name": "Routes and trips",
+          "ok": true,
+          "detail": "17 routes, 218 trips"
+        },
+        {
+          "name": "Calendar",
+          "ok": true
+        },
+        {
+          "name": "Scheduled service in next 7 days",
+          "ok": true,
+          "detail": "at least one trip is scheduled"
+        }
+      ]
+    },
+    {
+      "name": "Олександрія — позиції (Dozor JSON)",
+      "city": "Олександрія",
+      "sourceType": "json",
+      "state": "HEALTHY",
+      "counts": {
+        "vehicles": 18,
+        "vehicles_bus": 18
+      },
+      "bbox": [
+        32.977691,
+        48.613095,
+        33.13439,
+        48.689118
+      ],
+      "responseMs": 350,
+      "checks": [
+        {
+          "name": "Feed accessible",
+          "ok": true
+        },
+        {
+          "name": "Vehicle list found",
+          "ok": true,
+          "detail": "18 entries"
+        },
+        {
+          "name": "Coordinates",
+          "ok": true,
+          "detail": "18 valid, 0 invalid"
+        }
+      ]
+    },
+    {
+      "name": "Київ — маршрутки (офіційна геометрія)",
+      "city": "Київ",
+      "sourceType": "geojson",
+      "state": "HEALTHY",
+      "counts": {
+        "features": 2000,
+        "routes_marshrutka": 127
+      },
+      "bbox": [
+        30.33560850500004,
+        50.33937579800005,
+        30.70974218400005,
+        50.53325165100006
+      ],
+      "responseMs": 1762,
+      "checks": [
+        {
+          "name": "GeoJSON FeatureCollection",
+          "ok": true,
+          "detail": "2000 features"
+        },
+        {
+          "name": "Supported route/station geometries",
+          "ok": true,
+          "detail": "1999 usable features"
+        }
+      ]
+    },
+    {
+      "name": "Київ — метро (геометрія ліній)",
+      "city": "Київ",
+      "sourceType": "geojson",
+      "state": "HEALTHY",
+      "counts": {
+        "features": 98,
+        "routes_metro": 6
+      },
+      "bbox": [
+        30.355051788000026,
+        50.36658194100005,
+        30.696736315000066,
+        50.52313828800004
+      ],
+      "responseMs": 208,
+      "checks": [
+        {
+          "name": "GeoJSON FeatureCollection",
+          "ok": true,
+          "detail": "98 features"
+        },
+        {
+          "name": "Supported route/station geometries",
+          "ok": true,
+          "detail": "98 usable features"
+        }
+      ]
+    },
+    {
+      "name": "Київ — метро (станції)",
+      "city": "Київ",
+      "sourceType": "geojson",
+      "state": "HEALTHY",
+      "counts": {
+        "features": 52,
+        "stops_metro": 52
+      },
+      "bbox": [
+        30.35506162200005,
+        50.367111700000066,
+        30.696166576000053,
+        50.52272693100008
+      ],
+      "responseMs": 333,
+      "checks": [
+        {
+          "name": "GeoJSON FeatureCollection",
+          "ok": true,
+          "detail": "52 features"
+        },
+        {
+          "name": "Supported route/station geometries",
+          "ok": true,
+          "detail": "52 usable features"
+        }
+      ]
+    },
+    {
+      "name": "Київ — міська електричка (геометрія)",
+      "city": "Київ",
+      "sourceType": "geojson",
+      "state": "HEALTHY",
+      "counts": {
+        "features": 80,
+        "routes_city_train": 6
+      },
+      "bbox": [
+        30.38868972100005,
+        50.40254980000003,
+        30.64825707700004,
+        50.499679600000036
+      ],
+      "responseMs": 255,
+      "checks": [
+        {
+          "name": "GeoJSON FeatureCollection",
+          "ok": true,
+          "detail": "80 features"
+        },
+        {
+          "name": "Supported route/station geometries",
+          "ok": true,
+          "detail": "80 usable features"
+        }
+      ]
+    },
+    {
+      "name": "Київ — міська електричка (станції)",
+      "city": "Київ",
+      "sourceType": "geojson",
+      "state": "HEALTHY",
+      "counts": {
+        "features": 34,
+        "stops_city_train": 34
+      },
+      "bbox": [
+        30.388989914000035,
+        50.40280562600003,
+        30.644688388000077,
+        50.49770816900008
+      ],
+      "responseMs": 192,
+      "checks": [
+        {
+          "name": "GeoJSON FeatureCollection",
+          "ok": true,
+          "detail": "34 features"
+        },
+        {
+          "name": "Supported route/station geometries",
+          "ok": true,
+          "detail": "34 usable features"
+        }
+      ]
+    },
+    {
+      "name": "Київ — фунікулер (геометрія)",
+      "city": "Київ",
+      "sourceType": "geojson",
+      "state": "HEALTHY",
+      "counts": {
+        "features": 2,
+        "routes_funicular": 2
+      },
+      "bbox": [
+        30.52283710000006,
+        50.456848800000046,
+        30.52432550000003,
+        50.45874520000007
+      ],
+      "responseMs": 231,
+      "checks": [
+        {
+          "name": "GeoJSON FeatureCollection",
+          "ok": true,
+          "detail": "2 features"
+        },
+        {
+          "name": "Supported route/station geometries",
+          "ok": true,
+          "detail": "2 usable features"
+        }
+      ]
+    },
+    {
+      "name": "Київ — фунікулер (станції)",
+      "city": "Київ",
+      "sourceType": "geojson",
+      "state": "HEALTHY",
+      "counts": {
+        "features": 2,
+        "stops_funicular": 2
+      },
+      "bbox": [
+        30.522885658000064,
+        50.45690966500007,
+        30.52425744900006,
+        50.45866403200006
+      ],
+      "responseMs": 170,
+      "checks": [
+        {
+          "name": "GeoJSON FeatureCollection",
+          "ok": true,
+          "detail": "2 features"
+        },
+        {
+          "name": "Supported route/station geometries",
+          "ok": true,
+          "detail": "2 usable features"
+        }
+      ]
+    }
+  ],
+  "routePlanner": {
+    "provider": "Львівавтодор GTFS → MARSHGO GTFS timetable planner",
+    "feed": {
+      "stops": 1071,
+      "routes": 72,
+      "trips": 15716,
+      "timezone": "Europe/Kyiv"
+    },
+    "queryWindow": [
+      "2026-10-23T07:12:48.541Z",
+      "2026-10-23T08:42:48.541Z"
+    ],
+    "cases": [
+      {
+        "id": "center-to-main-station",
+        "status": "ROUTES_FOUND",
+        "count": 8,
+        "searchTruncated": true,
+        "resultLimitReached": false,
+        "examples": [
+          {
+            "modes": [
+              "bus",
+              "bus",
+              "bus"
+            ],
+            "routes": [
+              "А15",
+              "А53",
+              "А43"
+            ],
+            "orderedStops": [
+              [
+                "Дорошенка (50)",
+                "Проспект Свободи (67)"
+              ],
+              [
+                "Проспект Свободи (67)",
+                "Саксаганського (36)"
+              ],
+              [
+                "Саксаганського (36)",
+                "Скриня (113)"
+              ]
+            ],
+            "departureAt": "2026-10-23T07:12:48.541Z",
+            "arrivalAt": "2026-10-23T08:12:00.000Z"
+          },
+          {
+            "modes": [
+              "bus",
+              "bus",
+              "tram"
+            ],
+            "routes": [
+              "А15",
+              "А53",
+              "Т09"
+            ],
+            "orderedStops": [
+              [
+                "Дорошенка (50)",
+                "Проспект Свободи (67)"
+              ],
+              [
+                "Проспект Свободи (67)",
+                "Саксаганського (36)"
+              ],
+              [
+                "Саксаганського (36)",
+                "Залізничний вокзал (117)"
+              ]
+            ],
+            "departureAt": "2026-10-23T07:12:48.541Z",
+            "arrivalAt": "2026-10-23T08:12:29.000Z"
+          }
+        ]
+      },
+      {
+        "id": "north-to-sykhiv",
+        "status": "ROUTES_FOUND",
+        "count": 10,
+        "searchTruncated": true,
+        "resultLimitReached": true,
+        "examples": [
+          {
+            "modes": [
+              "bus",
+              "bus",
+              "bus"
+            ],
+            "routes": [
+              "А21",
+              "А34",
+              "А37"
+            ],
+            "orderedStops": [
+              [
+                "Щепова (865)",
+                "Варшавська (612)"
+              ],
+              [
+                "Варшавська (612)",
+                "Хімічна (608)"
+              ],
+              [
+                "Хімічна (608)",
+                "Центр Довженка (455)"
+              ]
+            ],
+            "departureAt": "2026-10-23T07:12:48.541Z",
+            "arrivalAt": "2026-10-23T08:28:48.000Z"
+          },
+          {
+            "modes": [
+              "bus",
+              "bus",
+              "bus"
+            ],
+            "routes": [
+              "А21",
+              "А52",
+              "А37"
+            ],
+            "orderedStops": [
+              [
+                "Щепова (865)",
+                "Варшавська (612)"
+              ],
+              [
+                "Варшавська (612)",
+                "Хімічна (608)"
+              ],
+              [
+                "Хімічна (608)",
+                "Центр Довженка (455)"
+              ]
+            ],
+            "departureAt": "2026-10-23T07:12:48.541Z",
+            "arrivalAt": "2026-10-23T08:28:48.000Z"
+          }
+        ]
+      }
+    ]
+  },
+  "supplementary": [
+    {
+      "provider": "CityBikes discovery",
+      "state": "PROBED",
+      "networks": 815,
+      "ukrainianNetworks": 0,
+      "role": "catalog-only"
+    },
+    {
+      "provider": "Zelectra GBFS candidate",
+      "state": "DEGRADED",
+      "counts": {
+        "feeds": 9,
+        "vehicles": 909,
+        "stations": 0,
+        "ageSeconds": 2
+      },
+      "bbox": [
+        -77.08089333333334,
+        -12.050576666666666,
+        30.56366166666667,
+        50.47503333333334
+      ],
+      "checks": [
+        {
+          "name": "Feed accessible",
+          "ok": true
+        },
+        {
+          "name": "Valid GBFS discovery",
+          "ok": true,
+          "detail": "9 feeds"
+        },
+        {
+          "name": "Vehicles",
+          "ok": true,
+          "detail": "909 valid, 0 rejected"
+        },
+        {
+          "name": "Stations",
+          "ok": true,
+          "detail": "0 valid, 0 rejected"
+        },
+        {
+          "name": "Freshness",
+          "ok": true,
+          "detail": "2s old"
+        },
+        {
+          "name": "Positions are in Ukraine",
+          "ok": false,
+          "detail": "-77.08, -12.05, 30.56, 50.48"
+        }
+      ],
+      "role": "nearby inventory candidate; route/booking rules unverified"
+    },
+    {
+      "provider": "Nextbike nextbike_lv candidate",
+      "state": "DEGRADED",
+      "counts": {
+        "feeds": 9,
+        "vehicles": 0,
+        "stations": 44,
+        "ageSeconds": 29
+      },
+      "bbox": [
+        24.010223,
+        56.897209,
+        24.252212,
+        57.021183
+      ],
+      "checks": [
+        {
+          "name": "Feed accessible",
+          "ok": true
+        },
+        {
+          "name": "Valid GBFS discovery",
+          "ok": true,
+          "detail": "9 feeds"
+        },
+        {
+          "name": "Vehicles",
+          "ok": false,
+          "detail": "0 valid, 0 rejected"
+        },
+        {
+          "name": "Stations",
+          "ok": true,
+          "detail": "44 valid, 0 rejected"
+        },
+        {
+          "name": "Freshness",
+          "ok": true,
+          "detail": "29s old"
+        },
+        {
+          "name": "Positions are in Ukraine",
+          "ok": false,
+          "detail": "24.01, 56.90, 24.25, 57.02"
+        }
+      ],
+      "role": "coverage candidate; city assignment must be checked against coordinates"
+    },
+    {
+      "provider": "Nextbike nextbike_vin candidate",
+      "state": "OFFLINE",
+      "counts": {},
+      "checks": [
+        {
+          "name": "Feed accessible",
+          "ok": false,
+          "detail": "HTTP 404"
+        }
+      ],
+      "role": "candidate URL probe; not an enabled Ukrainian source"
+    }
+  ]
+}

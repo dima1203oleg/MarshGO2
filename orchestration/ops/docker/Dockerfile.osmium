@@ -1,0 +1,9 @@
+# Clipping helper for the pedestrian graph build (ops/scripts/build-walking-graph.sh).
+# Debian packages osmium-tool natively, so the image builds for arm64 and amd64 without source builds.
+FROM debian:bookworm-slim
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends osmium-tool \
+  && rm -rf /var/lib/apt/lists/*
+
+ENTRYPOINT ["osmium"]

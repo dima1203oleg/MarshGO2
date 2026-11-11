@@ -1,0 +1,122 @@
+{
+  "mobileRes": {
+    "name": "mobile",
+    "screenshot1": "audit_mobile_initial.png",
+    "step2Screen": "audit_mobile_step2.png",
+    "initialPreview": "MARSHGO\n\nОдин маршрут. Усі способи доїхати.\n\nПопутки · міські поїздки · подорожі Україною\n\nУКРАЇНА БЛИЖЧЕ\n\nУсі способи\nдоїхати — в одному\nзастосунку.\n\nЗнайдіть попутку, сплануйте маршрут і домовтеся про поїздку в одному місці.\n\nПочатиУ мене вже є акаунт",
+    "step2Preview": "Пропустити\n\nГОЛОВНА ІДЕЯ\n\nЇдеш? MARSHGO знайде попутника по дорозі\n\nПросто почни навігацію — ми шукатимемо людей уздовж твого маршруту. Не треба створювати оголошення для кожної поїздки.\n\nДалі",
+    "headings": [
+      {
+        "tag": "h1",
+        "text": "Їдеш? MARSHGO знайде попутника по дорозі"
+      }
+    ],
+    "buttonList": [
+      "Почати",
+      "У мене вже є акаунт"
+    ],
+    "buttons": [
+      {
+        "text": "",
+        "ariaLabel": "Назад",
+        "disabled": false
+      },
+      {
+        "text": "Пропустити",
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "text": "Далі",
+        "ariaLabel": null,
+        "disabled": false
+      }
+    ],
+    "inputs": [],
+    "missingAltImages": 0,
+    "formLabels": [],
+    "performanceMetrics": {
+      "domContentLoaded": 567,
+      "loadComplete": 572,
+      "transferSize": 4051
+    },
+    "consoleLogs": [
+      {
+        "type": "debug",
+        "text": "[vite] connecting..."
+      },
+      {
+        "type": "debug",
+        "text": "[vite] connected."
+      },
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      }
+    ],
+    "pageErrors": [],
+    "failedRequests": []
+  },
+  "desktopRes": {
+    "name": "desktop",
+    "screenshot1": "audit_desktop_initial.png",
+    "step2Screen": "audit_desktop_step2.png",
+    "initialPreview": "MARSHGO\n\nОдин маршрут. Усі способи доїхати.\n\nПопутки · міські поїздки · подорожі Україною\n\nУКРАЇНА БЛИЖЧЕ\n\nУсі способи\nдоїхати — в одному\nзастосунку.\n\nЗнайдіть попутку, сплануйте маршрут і домовтеся про поїздку в одному місці.\n\nПочатиУ мене вже є акаунт",
+    "step2Preview": "Пропустити\n\nГОЛОВНА ІДЕЯ\n\nЇдеш? MARSHGO знайде попутника по дорозі\n\nПросто почни навігацію — ми шукатимемо людей уздовж твого маршруту. Не треба створювати оголошення для кожної поїздки.\n\nДалі",
+    "headings": [
+      {
+        "tag": "h1",
+        "text": "Їдеш? MARSHGO знайде попутника по дорозі"
+      }
+    ],
+    "buttonList": [
+      "Почати",
+      "У мене вже є акаунт"
+    ],
+    "buttons": [
+      {
+        "text": "",
+        "ariaLabel": "Назад",
+        "disabled": false
+      },
+      {
+        "text": "Пропустити",
+        "ariaLabel": null,
+        "disabled": false
+      },
+      {
+        "text": "Далі",
+        "ariaLabel": null,
+        "disabled": false
+      }
+    ],
+    "inputs": [],
+    "missingAltImages": 0,
+    "formLabels": [],
+    "performanceMetrics": {
+      "domContentLoaded": 446,
+      "loadComplete": 449,
+      "transferSize": 4051
+    },
+    "consoleLogs": [
+      {
+        "type": "debug",
+        "text": "[vite] connecting..."
+      },
+      {
+        "type": "debug",
+        "text": "[vite] connected."
+      },
+      {
+        "type": "info",
+        "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+      },
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      }
+    ],
+    "pageErrors": [],
+    "failedRequests": []
+  }
+}

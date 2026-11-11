@@ -1,0 +1,93 @@
+{
+  "observedAt": "2026-10-20",
+  "source": {
+    "url": "https://track.ua-gis.com/gtfs/lviv/static.zip",
+    "sha256": "bb4ac0ce9127b4967ad889379f523b04b84a0bb033814aa8c844526b42078164",
+    "bytes": 3755976,
+    "stops": 1057,
+    "routes": 72,
+    "trips": 15694
+  },
+  "baselineServerSha": "751d83aedadf9b46b48b3d7e8103475cc058ffff",
+  "candidateServerSha": "1a3598cc270af0d353a2b22cda740f81daa0da73",
+  "query": {
+    "id": "north-to-sykhiv",
+    "origin": [24.0029933, 49.8681678],
+    "destination": [24.057585, 49.794117],
+    "departureWindow": "2026-10-21T05:00:00Z/2026-10-21T06:30:00Z",
+    "allowedTransportTypes": ["bus", "tram", "trolleybus"],
+    "maximumStopDistanceMeters": 1800,
+    "maximumTransfers": 3,
+    "resultLimit": 100
+  },
+  "stages": {
+    "baseline": {
+      "originStops": 27,
+      "destinationStops": 29,
+      "corridorStops": 458,
+      "interchangeStops": 804,
+      "corridorWidthMeters": 2500,
+      "estimatedGraphDemand": 215966,
+      "graphBudget": 100000,
+      "materializedSegments": 98564,
+      "unusedBudget": 1436,
+      "routesWithCandidates": 71,
+      "routesBudgetLimited": 71,
+      "routesAtPerRouteCap": 4,
+      "routesAtBudgetLimit": 25,
+      "overflowReservoirRetained": 5493,
+      "overflowReservoirsAtCap": 24,
+      "transferStates": 396,
+      "reachableStops": 388,
+      "searchSteps": 463338,
+      "firstLegs": 3147,
+      "candidateResultsBeforeResponseSampling": 1634,
+      "candidateCountsByLegs": {"1": 14, "2": 515, "3": 527, "4": 532},
+      "candidatePoolReachedAtStepByLegCount": {"2": 19408, "3": 164983, "4": 363338},
+      "returned": 100,
+      "truncation": {
+        "stopSelection": true,
+        "segmentGraph": true,
+        "candidateSampling": true,
+        "searchBudget": true,
+        "hardSearchStepLimitReached": false,
+        "searchTruncated": true
+      }
+    },
+    "candidate": {
+      "originStops": 27,
+      "destinationStops": 29,
+      "corridorStops": 458,
+      "interchangeStops": 804,
+      "corridorWidthMeters": 2500,
+      "estimatedGraphDemand": 215966,
+      "graphBudget": 100000,
+      "materializedSegments": 98564,
+      "unusedBudget": 1436,
+      "routesWithCandidates": 71,
+      "routesBudgetLimited": 71,
+      "routesAtPerRouteCap": 4,
+      "routesAtBudgetLimit": 25,
+      "overflowReservoirRetained": 5493,
+      "overflowReservoirsAtCap": 24,
+      "transferStates": 396,
+      "reachableStops": 388,
+      "searchSteps": 463338,
+      "firstLegs": 3147,
+      "candidateResultsBeforeResponseSampling": 1634,
+      "candidateCountsByLegs": {"1": 14, "2": 515, "3": 527, "4": 532},
+      "candidatePoolReachedAtStepByLegCount": {"2": 19408, "3": 164983, "4": 363338},
+      "returned": 100,
+      "truncation": {
+        "stopSelection": true,
+        "segmentGraph": true,
+        "candidateSampling": true,
+        "searchBudget": true,
+        "hardSearchStepLimitReached": false,
+        "searchTruncated": true
+      }
+    }
+  },
+  "interpretation": "The temporal-retention change does not alter this query's retained graph or sampled results. The search is bounded at stop selection, graph construction, candidate sampling, and remaining queued work after the objective reservoir; it does not hit the 1,000,000 hard step limit. This sample points to stop/candidate prioritization and search-pool saturation as the next algorithmic investigation. Memory observations were omitted because baseline and candidate ran sequentially in one process and RSS/heap were not isolated.",
+  "runtimeNote": "Diagnostic comparison ran in one tsx process on Node 25.4.0; repository CI runtime is Node 24.21.0. Timings and memory are diagnostic only, not a benchmark."
+}

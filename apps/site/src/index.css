@@ -1,0 +1,2774 @@
+@import "tailwindcss";
+@import "./styles/motion.css";
+@import "./styles/feedback.css";
+
+/* themeService owns the theme: it resolves "system" itself and writes html.dark.
+   Tailwind's default `dark:` follows the OS instead, so an in-app light theme on
+   a dark-mode OS applied dark utilities (e.g. white banner text on a white scrim). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  /* Legacy brand names resolve through the semantic ramp below. */
+  --color-marshgo-navy: var(--mg-navy);
+  --color-marshgo-blue: var(--mg-action);
+  --color-marshgo-bg: var(--mg-canvas);
+  --color-marshgo-card: var(--mg-surface-card);
+  --color-marshgo-text: var(--mg-ink-primary);
+  --color-marshgo-muted: var(--mg-ink-secondary);
+  --color-marshgo-border: var(--mg-border-subtle);
+  --color-marshgo-green: var(--mg-green);
+  --color-marshgo-amber: var(--mg-amber);
+  --color-marshgo-red: var(--mg-red);
+  --mode-bus: var(--mg-mode-monochrome);
+  --mode-marshrutka: var(--mg-mode-monochrome);
+  --mode-trolleybus: var(--mg-mode-monochrome);
+  --mode-tram: var(--mg-mode-monochrome);
+  --mode-metro: var(--mg-mode-monochrome);
+  --mode-carpool: var(--mg-mode-monochrome);
+  --mode-taxi: var(--mg-mode-monochrome);
+  --mode-train: var(--mg-mode-monochrome);
+  --mode-bike: var(--mg-mode-monochrome);
+  --mode-scooter: var(--mg-mode-monochrome);
+  --mode-carsharing: var(--mg-mode-monochrome);
+  --mode-transfer: var(--mg-mode-monochrome);
+  --mode-walk: var(--mg-ink-muted);
+  --mode-wait: var(--mg-ink-muted);
+  --mode-ferry: var(--mg-mode-monochrome);
+  --mode-funicular: var(--mg-ink-muted);
+  --mode-unknown: var(--mg-ink-muted);
+}
+
+html.dark {
+  /* The three blues have three jobs. --mg-blue paints strokes, icons and large text; --mg-blue-ink
+     paints small text on a surface and must clear AA on --mg-blue-tint; --mg-action fills a control
+     behind white labels. Colons are omitted after each name so the declaration-count tests stay honest. */
+  --mg-blue: #71C7F2;
+  --mg-blue-pressed: #53B2E9;
+  --mg-blue-tint: #0B1B2C;
+  --mg-blue-ink: #71C7F2;
+  --mg-navy: #071521;
+  --mg-ink: #F5F8FC;
+  --mg-muted: #AABFD1;
+  --mg-canvas: #071521;
+  --mg-bg-secondary: #0B1B2C;
+  --mg-line: rgba(142, 180, 211, .16);
+  --mg-surface-primary: #10263D;
+  --mg-surface-secondary: #172B44;
+  --mg-surface-card: #172B44;
+  --mg-surface-tint: #0B1B2C;
+  /* Raised above the surface it sits on: dropdown lists and floating control chips. */
+  --mg-surface-elevated: #1D3B58;
+  --mg-amber: #FFB020;
+  --mg-green: #2CD67D;
+  --mg-red: #FF7A89;
+  --mg-mode-monochrome: #71C7F2;
+  /* --mg-action fills a control with white text; --mg-blue is the accent for text and strokes. */
+  --mg-action: #1766B4;
+  --mg-action-subtle: color-mix(in srgb, var(--mg-blue) 50%, var(--mg-surface-card));
+  --mg-action-hover: #1B72C9;
+  /* The hover affordance below the action colour: the accent diluted into the card it borders, so a
+     card hints at being selectable without looking selected. */
+  --mg-surface-glass: rgba(7, 21, 33, .94);
+  --mg-ink-primary: #F5F8FC;
+  --mg-ink-secondary: #AABFD1;
+  --mg-ink-muted: #91A7BC;
+  --mg-border-subtle: rgba(142, 180, 211, .16);
+  --mg-border-medium: rgba(142, 180, 211, .30);
+  --mg-card-shadow: 0 8px 24px rgba(0, 0, 0, .16);
+  color-scheme: dark;
+}
+
+/* The selected journey sheet follows the app theme while keeping the same canonical geometry. */
+.route-map-screen {
+  --route-canvas: #F2F7FB;
+  --route-sheet: rgba(255, 255, 255, .97);
+  --route-sheet-start: rgba(255, 255, 255, .98);
+  --route-sheet-end: rgba(247, 250, 254, .99);
+  --route-ink: #14243B;
+  --route-muted: #52637A;
+  --route-subtle: #64748B;
+  --route-border: #D8E2ED;
+  --route-card: #FFFFFF;
+  --route-card-alt: #EAF1F7;
+  --route-floating: rgba(255, 255, 255, .94);
+  --route-track: #E2E9F1;
+  --route-timeline-divider: rgba(255, 255, 255, .62);
+  --route-community-surface: #EAF1F7;
+  --route-footer: rgba(255, 255, 255, .96);
+  --route-hover: rgba(50, 127, 195, .08);
+  --route-grabber: #AAB8C8;
+  --route-sheet-shadow: 0 -18px 64px rgba(25, 53, 87, .18);
+  --route-brand-ink: #10263D;
+  --route-ribbon-walk: #A9B6C7;
+  --route-ribbon-ring: #14243B;
+  --route-control-bg: rgba(255, 255, 255, .92);
+  --route-control-active-bg: var(--mg-action);
+  --route-control-active-ink: #FFFFFF;
+  --route-control-border: rgba(16, 38, 61, .12);
+  --route-scale-ink: #213650;
+  --mg-label-bg: rgba(255, 255, 255, .97);
+  --mg-label-ink: #101C2E;
+  --mg-label-muted: #58697F;
+  --mg-label-border: rgba(20, 36, 59, .12);
+  --mg-label-shadow: 0 8px 20px rgba(16, 34, 55, .2);
+  --mg-label-caption-shadow: 0 1px 2px rgba(255, 255, 255, .9), 0 0 6px rgba(255, 255, 255, .7);
+  --mg-callout-bg: rgba(255, 255, 255, .96);
+  --mg-callout-ink: #10263D;
+  --mg-callout-border: rgba(20, 36, 59, .16);
+  /* Compact density contract for the route-details sheet: one source for the
+     vertical rhythm so summary, ribbon, cards and CTA tighten together.
+     Geometry only — both themes inherit the same values. */
+  --mg-sheet-stack-gap: 4px;
+  --mg-sheet-card-pad-y: 4px;
+  --mg-sheet-card-pad-x: 6px;
+  --mg-sheet-summary-pad-top: 2px;
+  --mg-sheet-summary-pad-bottom: 4px;
+  --mg-sheet-endpoints-pad-bottom: 3px;
+  --mg-sheet-ribbon-height: 48px;
+  --mg-sheet-label-leading: 1.2;
+  --mg-sheet-cta-min-height: 52px;
+  background-color: var(--route-canvas);
+  color-scheme: light;
+}
+.route-map-screen[data-theme="dark"] {
+  --route-canvas: #071521;
+  --route-sheet: #10263D;
+  --route-sheet-start: #10263D;
+  --route-sheet-end: #0B1B2C;
+  --route-ink: #F5F8FC;
+  --route-muted: #AABFD1;
+  --route-subtle: #91A7BC;
+  --route-border: rgba(142, 180, 211, .20);
+  --route-card: #172B44;
+  --route-card-alt: #1D3B58;
+  --route-floating: rgba(16, 38, 61, .94);
+  --route-track: #3A76A4;
+  --route-timeline-divider: rgba(7, 21, 33, .7);
+  --route-community-surface: rgba(50, 127, 195, .16);
+  --route-footer: rgba(11, 27, 44, .98);
+  --route-hover: rgba(255, 255, 255, .06);
+  --route-grabber: #54708A;
+  --route-sheet-shadow: 0 -24px 70px rgba(0, 0, 0, .38);
+  --route-brand-ink: #F5F8FC;
+  --route-ribbon-walk: #91A7BC;
+  --route-ribbon-ring: #EAF1FB;
+  --route-control-bg: rgba(16, 38, 61, .94);
+  --route-control-active-bg: var(--mg-action);
+  --route-control-active-ink: #FFFFFF;
+  --route-control-border: rgba(255, 255, 255, .09);
+  --route-scale-ink: #E8EEF8;
+  --mg-label-bg: rgba(16, 38, 61, .96);
+  --mg-label-ink: #F5F8FC;
+  --mg-label-muted: #AABFD1;
+  --mg-label-border: rgba(142, 180, 211, .22);
+  --mg-label-shadow: 0 10px 24px rgba(0, 0, 0, .36);
+  --mg-label-caption-shadow: 0 1px 3px rgba(0, 0, 0, .8), 0 0 8px rgba(0, 0, 0, .6);
+  --mg-callout-bg: #172B44;
+  --mg-callout-ink: #F5F8FC;
+  --mg-callout-border: rgba(142, 180, 211, .24);
+  color-scheme: dark;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, system-ui, sans-serif;
+  background-color: var(--color-marshgo-bg);
+  color: var(--color-marshgo-text);
+  padding-bottom: env(safe-area-inset-bottom);
+  transition: background-color 0.2s ease, color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+  text-rendering: optimizeLegibility;
+}
+
+/* Shared mobile-first MARSHGO system: same CSS and React views in web and WKWebView. */
+:root {
+  --mg-blue: #327FC3;
+  --mg-blue-pressed: #246FAF;
+  --mg-blue-tint: #E8F1F8;
+  --mg-blue-ink: #155E95;
+  --mg-navy: #071521;
+  --mg-ink: #0b1d3a;
+  --mg-muted: #526477;
+  /* The ink and line ramp lives in both themes: a token defined only under html.dark silently
+     resolves to the inherited value in light, so the control looked right and was unstyled.
+     Ratios below are AA on every light surface (white, tint, canvas, blue-tint). */
+  --mg-ink-primary: #14243B;
+  --mg-ink-secondary: #46586E;
+  --mg-ink-muted: #5C6B83;
+  --mg-border-subtle: #DCE6EF;
+  --mg-border-medium: #B9CAD9;
+  --mg-surface-glass: rgba(255, 255, 255, .9);
+  --mg-canvas: #F2F7FB;
+  --mg-bg-secondary: #EAF1F7;
+  --mg-line: #DCE6EF;
+  --mg-surface-primary: #FFFFFF;
+  --mg-surface-secondary: #EEF4F9;
+  --mg-surface-card: #FFFFFF;
+  --mg-surface-tint: #EAF1F7;
+  /* A panel raised over the card behind it (suggestion lists, floating controls). In the light theme
+     the raised step is the secondary surface; the dark theme mixes one out of the card ramp. */
+  --mg-surface-elevated: var(--mg-surface-secondary);
+  --mg-action: #1766B4;
+  --mg-action-subtle: color-mix(in srgb, var(--mg-action) 45%, var(--mg-surface-card));
+  --mg-action-hover: #135A9C;
+  --mg-amber: #AE6C00;
+  --mg-green: #16845C;
+  --mg-red: #BE3440;
+  --mg-mode-monochrome: #155E95;
+  --mg-card-shadow: 0 8px 24px rgba(24, 58, 105, .07), 0 1px 3px rgba(24, 58, 105, .04);
+
+  /* Credential entry stays navy in either app theme: its fields and labels have a dark-surface
+     contrast contract, while the rest of the product follows the user's selected theme. */
+  --mg-auth-canvas: #071521;
+  --mg-auth-surface: #0B1B2C;
+  --mg-auth-accent: #71C7F2;
+
+  /* Radii: measured from the sheet (8/10/16/20/24/28/32 px + pills). */
+  --mg-radius-sm: 8px;
+  --mg-radius-md: 10px;
+  --mg-radius-lg: 16px;
+  --mg-radius-xl: 20px;
+  --mg-radius-2xl: 24px;
+  --mg-radius-3xl: 28px;
+  --mg-radius-sheet: 32px;
+  --mg-radius-pill: 999px;
+  /* Shared tab bar: top padding, 2.9rem controls, border, bottom padding and fixed safe-area gap. */
+  --mg-global-nav-clearance: calc(3.5rem + max(.9rem, env(safe-area-inset-bottom, 0px) + env(safe-area-inset-bottom, 0px)));
+
+  /* Stacking. Each level carries the number the app already stacked with. */
+  --mg-z-base: 1;
+  --mg-z-raised: 2;
+  --mg-z-control: 9;
+  --mg-z-sticky: 20;
+  --mg-z-overlay: 40;
+  --mg-z-scrim: 55;
+  --mg-z-scrim-raised: 60;
+  --mg-z-picker-scrim: 65;
+  --mg-z-map-control: 70;
+  --mg-z-map-chip: 80;
+  --mg-z-sheet: 100;
+  --mg-z-sheet-raised: 120;
+  --mg-z-lifecycle: 200;
+  --mg-z-nav-backdrop: 490;
+  --mg-z-nav-chrome: 500;
+  --mg-z-nav-sheet: 510;
+  --mg-z-modal: 1000;
+
+  --mg-stagger-step: 55ms;
+}
+
+html, body, #root { min-height: 100%; }
+html { background: var(--mg-canvas); }
+body { overscroll-behavior-y: none; }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+:where(button, a, input, select, textarea):focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--mg-blue) 72%, transparent);
+  outline-offset: 2px;
+}
+
+.production-app {
+  min-height: 100svh;
+  background:
+    radial-gradient(ellipse at 50% -12%, rgba(113, 199, 242, .12), transparent 30rem),
+    var(--mg-canvas);
+  padding-bottom: calc(5.25rem + env(safe-area-inset-bottom));
+}
+html.dark .production-app { background: radial-gradient(ellipse at 50% -12%, rgba(113, 199, 242, .08), transparent 30rem), var(--mg-canvas); color: var(--mg-ink); }
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: var(--mg-z-sticky);
+  padding-top: max(.65rem, env(safe-area-inset-top));
+  background: rgba(242, 247, 251, .9);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+}
+html.dark .app-header {
+  background: var(--mg-surface-glass);
+  border-bottom: 1px solid var(--mg-border-subtle);
+}
+html.dark .app-header > div:first-child strong { color: var(--mg-ink-primary); }
+.app-header-brand-copy { flex: 0 1 auto; }
+.app-header-brand { min-width: 0; }
+.app-header-actions > button { border: 1px solid transparent; transition: background-color var(--mg-dur-fast) var(--mg-ease-standard), border-color var(--mg-dur-fast) var(--mg-ease-standard), color var(--mg-dur-fast) var(--mg-ease-standard), transform var(--mg-dur-fast) var(--mg-ease-standard); }
+.current-city-selector-trigger { max-width: 9rem; border-color: var(--mg-border-subtle); background: var(--mg-surface-secondary); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--mg-ink-primary) 4%, transparent); }
+.current-city-selector-label { max-width: 6rem; }
+.current-city-selector-trigger:focus-visible,
+.home-marshpass-promo:focus-visible { outline: 2px solid var(--mg-blue); outline-offset: 3px; }
+.home-marshpass-promo { isolation: isolate; min-height: clamp(10rem, 20svh, 11.75rem); background: linear-gradient(118deg, var(--mg-surface-primary) 0%, color-mix(in srgb, var(--mg-action) 10%, var(--mg-surface-primary)) 100%); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--mg-ink-primary) 7%, transparent), var(--mg-card-shadow); }
+.home-marshpass-promo::before {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background: radial-gradient(ellipse at 82% 26%, color-mix(in srgb, var(--mg-blue) 12%, transparent), transparent 52%);
+  content: "";
+  pointer-events: none;
+}
+.home-marshpass-promo__route {
+  position: absolute;
+  top: 50%;
+  right: .25rem;
+  width: min(52%, 13rem);
+  height: 75%;
+  color: var(--mg-blue-ink);
+  opacity: .43;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+.home-marshpass-promo__route svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.home-marshpass-promo__route path {
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 2px color-mix(in srgb, currentColor 42%, transparent));
+}
+.home-marshpass-promo__route .home-marshpass-promo__contour { stroke-width: 1; opacity: .22; filter: none; }
+.home-marshpass-promo__route circle { fill: var(--mg-surface-primary); stroke: currentColor; stroke-width: 2; }
+.home-marshpass-promo__title { max-width: 78%; text-wrap: balance; }
+.home-marshpass-promo__description { max-width: 72%; }
+.home-marshpass-promo__footer { letter-spacing: .2em; }
+.home-marshpass-promo__destination { position: absolute; z-index: 2; top: 17%; right: 8%; color: var(--mg-blue); filter: drop-shadow(0 0 5px color-mix(in srgb, var(--mg-blue) 42%, transparent)); }
+.home-marshpass-promo__barcode { display: block; width: 3.8rem; height: 1.1rem; margin-right: .15rem; background: repeating-linear-gradient(90deg, currentColor 0 1px, transparent 1px 3px, currentColor 3px 5px, transparent 5px 7px, currentColor 7px 8px, transparent 8px 10px); opacity: .78; }
+.home-marshpass-card--active { position: relative; background: linear-gradient(122deg, var(--mg-surface-primary), color-mix(in srgb, var(--mg-action) 9%, var(--mg-surface-primary))); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--mg-ink-primary) 7%, transparent), var(--mg-card-shadow); }
+.home-marshpass-card--active::before { position: absolute; inset: 0; background: radial-gradient(ellipse at 96% 6%, color-mix(in srgb, var(--mg-blue) 13%, transparent), transparent 45%); content: ""; pointer-events: none; }
+.home-pass-preview__header, .home-pass-preview__brand, .home-pass-preview__status, .home-pass-preview__route, .home-pass-preview__footer, .home-pass-preview__driver { display: flex; align-items: center; }
+.home-pass-preview__header, .home-pass-preview__footer { position: relative; justify-content: space-between; gap: .65rem; }
+.home-pass-preview__brand { min-width: 0; gap: .55rem; color: var(--mg-ink-secondary); font-size: .6875rem; font-weight: 900; letter-spacing: .14em; }
+.home-pass-preview__brand-icon { display: grid; width: 2rem; height: 2rem; flex: none; place-items: center; border: 1px solid var(--mg-border-subtle); border-radius: .75rem; background: var(--mg-blue-tint); color: var(--mg-blue); }
+.home-pass-preview__status { flex: none; gap: .3rem; border: 1px solid color-mix(in srgb, var(--mg-green) 34%, transparent); border-radius: var(--mg-radius-pill); background: color-mix(in srgb, var(--mg-green) 9%, transparent); padding: .32rem .55rem; color: var(--mg-green); font-size: .625rem; font-weight: 800; white-space: nowrap; }
+.home-pass-preview__status--boarding { border-color: var(--mg-border-medium); background: var(--mg-blue-tint); color: var(--mg-blue-ink); }
+.home-pass-preview__route { position: relative; min-width: 0; justify-content: space-between; gap: .5rem; }
+.home-pass-preview__city { display: block; min-width: 0; flex: 1; }
+.home-pass-preview__city--destination { text-align: right; }
+.home-pass-preview__city-name { display: block; overflow: hidden; color: var(--mg-ink-primary); font-size: 1.08rem; font-weight: 900; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.home-pass-preview__meta { display: block; overflow: hidden; margin-top: .15rem; color: var(--mg-ink-secondary); font-size: .6875rem; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.home-pass-preview__connector { display: flex; flex: 0 1 3.5rem; align-items: center; justify-content: center; gap: .2rem; color: var(--mg-blue); }
+.home-pass-preview__connector i { height: .35rem; width: .35rem; flex: none; border: 1.5px solid currentColor; border-radius: 50%; }
+.home-pass-preview__footer { border-top: 1px dashed var(--mg-border-medium); padding-top: .5rem; }
+.home-pass-preview__driver { min-width: 0; gap: .35rem; color: var(--mg-ink-secondary); font-size: .6875rem; font-weight: 650; }
+.home-pass-preview__driver svg { flex: none; color: var(--mg-blue); }
+.home-pass-preview__driver span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.home-pass-preview__open { display: inline-flex; min-height: 2.25rem; flex: none; align-items: center; gap: .35rem; border: 1px solid var(--mg-border-medium); border-radius: .75rem; background: var(--mg-blue-tint); padding-inline: .65rem; color: var(--mg-blue-ink); font-size: .6875rem; font-weight: 800; white-space: nowrap; }
+@media (max-width: 380px) {
+  .app-header { gap: .375rem; padding-inline: .625rem; }
+  .app-header-brand { gap: .375rem; }
+  .app-header-brand-copy p { display: none; }
+  .app-header-brand-copy strong { font-size: 1rem; }
+  .current-city-selector-trigger { max-width: 4.5rem; gap: .2rem; padding-inline: .25rem; }
+  .current-city-selector-trigger > svg:first-child { width: 13px; }
+  .current-city-selector-trigger > svg:last-child { width: 11px; }
+  .current-city-selector-label { max-width: 2rem; font-size: .6875rem; }
+  .home-marshpass-promo__title { max-width: 84%; font-size: 1.2rem; }
+  .home-pass-preview__status { padding-inline: .4rem; }
+  .home-pass-preview__connector { flex-basis: 2.2rem; gap: .1rem; }
+  .home-pass-preview__open { padding-inline: .5rem; font-size: .625rem; }
+  .app-header-actions { gap: .125rem; }
+}
+.home-screen { padding-top: .35rem; }
+.transport-types-inline { margin-top: .7rem; }
+.transport-types-inline .transport-mode-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .4rem;
+}
+.transport-types-inline .transport-mode-grid button { min-height: 4.25rem; }
+.transport-mode-tile__label { text-wrap: balance; }
+@media (max-width: 380px) {
+  .transport-types-inline .transport-mode-tile__label { font-size: .625rem; letter-spacing: -.01em; }
+}
+.transport-types-inline .transport-mode-grid button.transport-mode-tile--carpool { box-shadow: 0 0 0 1px var(--mg-action), var(--mg-card-shadow); }
+.home-screen .home-intro {
+  position: relative;
+  overflow: hidden;
+  margin: 0 -.25rem 1rem;
+  padding: 1.05rem 1rem 1.1rem;
+  border: 1px solid var(--mg-line);
+  border-radius: 1.65rem;
+  background: var(--mg-surface-secondary);
+}
+/* A place row has one trailing control, and it has to read as what it is: an action that fills the
+   field, or a ghost that empties it. Both states use tokens so the theme owns the contrast. */
+.journey-search-card button.search-field-action[data-field-action="pick"],
+.journey-search-card button.search-field-action[data-field-action="locate"] {
+  border: 1px solid var(--mg-border-medium);
+  background-color: var(--mg-blue-tint);
+  color: var(--mg-blue-ink);
+}
+.journey-search-card button.search-field-action[data-field-action="clear"] {
+  border: 1px solid transparent;
+  background-color: transparent;
+  color: var(--mg-ink-muted);
+}
+.journey-search-card {
+  border-color: rgba(255,255,255,.94);
+  box-shadow: 0 14px 34px rgba(23, 68, 126, .09), 0 2px 6px rgba(23, 68, 126, .04);
+}
+html.dark .search-screen .home-intro {
+  border-color: var(--mg-border-medium);
+  background: var(--mg-surface-primary);
+}
+html.dark .search-screen .home-greeting { color: var(--mg-blue); }
+html.dark .search-screen .home-title { color: var(--mg-ink-primary); }
+html.dark .search-screen .home-description { color: var(--mg-ink-secondary); }
+html.dark .search-screen .journey-search-card {
+  border-color: var(--mg-border-subtle);
+  background: var(--mg-surface-primary);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .28);
+}
+html.dark .search-screen .journey-search-card label,
+html.dark .search-screen .journey-search-card .search-trip-details > button,
+html.dark .search-screen .journey-search-card .search-trip-details > div {
+  background: var(--mg-surface-secondary);
+  color: var(--mg-ink-primary);
+}
+html.dark .search-screen .journey-search-card [role="group"] {
+  background: var(--mg-surface-secondary);
+  color: var(--mg-ink-primary);
+}
+html.dark .search-screen .journey-search-card label small,
+html.dark .search-screen .journey-search-card .search-trip-details small { color: var(--mg-ink-muted); }
+html.dark .search-screen .journey-search-card input { color: var(--mg-ink-primary); }
+html.dark .search-screen .journey-search-card input::placeholder { color: var(--mg-ink-muted); }
+html.dark .search-screen .journey-search-card label > button:not([data-field-action]) {
+  border: 1px solid var(--mg-border-subtle);
+  background: var(--mg-bg-secondary);
+  color: var(--mg-blue);
+}
+html.dark .search-screen .journey-search-card [role="group"] > button:not([data-field-action]) {
+  border: 1px solid var(--mg-border-subtle);
+  background: var(--mg-bg-secondary);
+  color: var(--mg-blue);
+}
+html.dark .search-screen .journey-search-card .search-trip-details > button { color: var(--mg-blue); }
+/* The arrival tile used to carry the same blue through its inner button, which made «По» the only
+   value in the card tinted like a link; the tile's own ink already matches the departure tile. */
+/*
+ * Date, time and seat count are one control family, so they share a surface, a radius and a
+ * height instead of each carrying its own Tailwind soup. These rules are unlayered, which is
+ * why the fills and the paddings live here and nowhere else — utilities cannot override them.
+ */
+.search-screen .journey-search-card .trip-tile {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  min-height: 3.5rem;
+  padding: .5rem .7rem;
+  border-radius: 1.05rem;
+  background: var(--mg-surface-secondary);
+}
+.search-screen .journey-search-card .trip-tile--stepper { padding: .25rem .25rem .25rem .7rem; }
+.search-screen .journey-search-card .trip-tile small { font-size: 12px; font-weight: 600; line-height: 1.15; color: #5b6a80; }
+.search-screen .journey-search-card .trip-tile .trip-tile__value { font-size: 13px; font-weight: 800; line-height: 1.25; }
+/* The boxy square treatment belongs to the seat stepper's two icon buttons only. Scoped here as
+   `.trip-tile button` it also captured the arrival tile's inner button, which stacked its icon above
+   the value, painted a bordered box inside the tile and re-tinted the text — so «З» and «По» read as
+   two different controls. */
+.search-screen .journey-search-card .trip-tile--stepper > button {
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(148, 170, 196, .38);
+  background: #fff;
+}
+html.dark .search-screen .journey-search-card .trip-tile { background: var(--mg-surface-secondary); color: var(--mg-ink-primary); }
+html.dark .search-screen .journey-search-card .trip-tile small { color: var(--mg-ink-muted); }
+html.dark .search-screen .journey-search-card .trip-tile--stepper > button { border-color: var(--mg-border-subtle); background: var(--mg-bg-secondary); color: var(--mg-blue); }
+/*
+ * Passengers and budget share one row at every width (owner, 2026-11-08). A 164 px half cannot hold
+ * the 88 px stepper pair beside its text — that is how «1 пасажир» once wrapped under the minus
+ * button — so on mobile the pair wraps to a second line INSIDE the tile and both stay whole.
+ * An armed arrival tile still stacks: measured at 390 px, its 164 px half could not hold
+ * a 44 px clear button and the 95 px «5 лист., 20:00» together, so the pair stacks once a limit is set.
+ */
+@media (max-width: 639px) {
+  .search-screen .journey-search-card .trip-tile--stepper { flex-wrap: wrap; justify-content: center; row-gap: .35rem; padding: .5rem .7rem; }
+  /* The Coins glyph and the chevron are decoration on a tile that is already one big select; together
+     they cost the value 47 px, which is exactly what «Без обмеження» needs to stay untruncated. */
+  .search-screen .journey-search-card .search-trip-details--stack > label.trip-tile > svg { display: none; }
+}
+@media (max-width: 430px) {
+  .search-screen .journey-search-card .search-trip-details--armed { grid-template-columns: minmax(0, 1fr); }
+}
+.journey-search-card label { min-height: 3.65rem; }
+.journey-search-card input { font-size: 16px; } /* Prevent WKWebView input zoom. */
+.journey-search-card button,
+.journey-offer-card,
+.journey-results button { touch-action: manipulation; }
+.transport-mode-grid button { min-height: 4.6rem; }
+.journey-offer-card {
+  border-color: var(--mg-line);
+  border-radius: 1.35rem;
+  box-shadow: var(--mg-card-shadow);
+}
+.journey-results { padding-top: .15rem; }
+.journey-results {
+  background: linear-gradient(180deg, var(--mg-canvas) 0%, var(--mg-bg-secondary) 100%);
+}
+.journey-results-header { min-height: 3.35rem; }
+.journey-results [aria-label="Режим пошуку маршрутів"] > button {
+  min-height: 2.9rem;
+  border-radius: 14px;
+}
+.journey-result-card {
+  border-radius: 16px;
+  background-image: linear-gradient(145deg, #FFFFFF 0%, #FBFDFF 56%, #F7FAFE 100%);
+  box-shadow: 0 5px 16px rgba(11, 45, 82, .075);
+}
+.journey-result-card-content { padding: .2rem .45rem; }
+.journey-result-header { min-height: 2.5rem; }
+html.dark .journey-results {
+  background: linear-gradient(180deg, var(--mg-canvas) 0%, var(--mg-bg-secondary) 100%);
+}
+html.dark .journey-results .journey-result-card {
+  background-color: var(--mg-surface-secondary);
+  background-image: linear-gradient(145deg, var(--mg-surface-secondary) 0%, var(--mg-surface-primary) 100%);
+  border-color: var(--mg-border-subtle);
+  box-shadow: var(--mg-card-shadow);
+}
+/*
+ * Position in the list is not selection. Strategy order stays in the results data, while the
+ * recommendation is described only after opening route details.
+ */
+/*
+ * The card the passenger actually opened is a fact, not a ranking, so it owns a real selection
+ * marker: a ring around the border. This is the only card-specific accent; strategy order is
+ * described after opening route details.
+ */
+.journey-result-card[data-chosen="true"] { border-color: var(--mg-blue); box-shadow: 0 0 0 2px color-mix(in srgb, var(--mg-blue) 30%, transparent), 0 5px 16px rgba(11, 45, 82, .075) !important; }
+html.dark .journey-results .journey-result-card[data-chosen="true"] { border-color: var(--mg-blue) !important; box-shadow: 0 0 0 2px color-mix(in srgb, var(--mg-blue) 45%, transparent) !important; }
+html.dark .journey-results .journey-result-duration {
+  color: var(--mg-ink-primary);
+}
+html.dark .journey-results [aria-label="Режим пошуку маршрутів"] > button:not([aria-pressed="true"]) {
+  border-color: var(--mg-border-subtle);
+  background-color: var(--mg-surface-primary);
+}
+.route-immersive-shell {
+  height: 100svh;
+  min-height: 100svh;
+  overflow: hidden;
+  padding-bottom: 0;
+}
+.journey-results-header { flex: 0 0 auto; }
+.journey-result-card-content { min-width: 0; }
+.journey-segment-strip { min-width: 0; }
+.journey-segment-ribbon {
+  display: flex;
+  width: 100%;
+  height: 11px;
+  gap: 2px;
+  overflow: hidden;
+  border-radius: var(--mg-radius-pill);
+  background: #d8e1eb;
+}
+.journey-segment-ribbon > span {
+  min-width: 3px;
+  border-radius: var(--mg-radius-pill);
+  transition: filter .18s ease, opacity .18s ease;
+}
+.journey-segment-tiles-viewport { position: relative; min-width: 0; margin-top: .125rem; }
+.journey-segment-tiles {
+  display: flex;
+  min-width: 0;
+  overflow-x: auto;
+  /* Kinetic scrolling on iOS Safari; a chain flick has to coast and stay interruptible. */
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  /* Mandatory snapping fights a momentum fling: the browser drags the row back to a tile boundary
+     while the rider is still mid-swipe, and it re-snap-hops when the last tile cannot line up. */
+  scroll-snap-type: x proximity;
+  overscroll-behavior-x: contain;
+  /* A stage sliced in half by the edge of the row reads as a rendering bug, so the cut edge fades —
+     but only while content is genuinely hidden there, which the component publishes as flags. */
+  --mg-fade-x-start: 0px;
+  --mg-fade-x-end: 0px;
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--mg-fade-x-start), #000 calc(100% - var(--mg-fade-x-end)), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 var(--mg-fade-x-start), #000 calc(100% - var(--mg-fade-x-end)), transparent 100%);
+}
+.journey-segment-tiles[data-fade-start="true"] { --mg-fade-x-start: 1.5rem; }
+.journey-segment-tiles[data-fade-end="true"] { --mg-fade-x-end: 1.5rem; }
+.journey-segment-tile {
+  min-width: 0;
+  flex: 1 0 0;
+  border-right: 1px solid #d9e2ec;
+  scroll-snap-align: start;
+}
+.journey-segment-tile:last-child { border-right: 0; }
+/*
+ * A scrolled row has no reason to squeeze its stages: 7.25rem is the floor, not the width, so a
+ * name like «Трамвай №3» is never cut into «Трамвай …». max-content keeps the row honest and the
+ * 11rem ceiling stops one long feed label from pushing the rest of the chain off-screen.
+ */
+.journey-segment-tile--scroll { flex: 0 0 auto; min-width: 7.25rem; width: max-content; max-width: 11rem; }
+.journey-segment-tile-content,
+.journey-segment-tile-button {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 3.25rem;
+  flex-direction: column;
+  justify-content: center;
+  gap: .1rem;
+  padding: .12rem .25rem;
+  text-align: left;
+}
+.journey-segment-tile-button {
+  min-height: 3.25rem;
+  color: inherit;
+  transition: background-color .16s ease, opacity .16s ease;
+}
+.journey-segment-tile-button:hover { background: color-mix(in srgb, var(--mg-blue) 7%, transparent); }
+.journey-segment-tile-button:focus-visible { position: relative; z-index: var(--mg-z-base); outline: 2px solid var(--mg-blue); outline-offset: -2px; }
+.journey-segment-tile.is-active { z-index: var(--mg-z-raised); }
+.journey-segment-tile.is-active .journey-segment-tile-button { background: color-mix(in srgb, var(--mg-blue) 10%, transparent); }
+.journey-segment-tile-heading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-start;
+  gap: .25rem;
+  color: #172638;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+.journey-segment-tile-icon { display: grid; flex: 0 0 1.25rem; place-items: center; border-radius: .375rem; background: color-mix(in srgb, var(--mg-blue) 10%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--mg-blue) 14%, transparent); }
+.journey-metro-glyph { font-size: 1.2rem; font-weight: 950; font-style: italic; line-height: .9; letter-spacing: -.12em; transform: translateX(-.04em); }
+.journey-segment-tile-icon[data-icon-mode="WALK"] { color: #172638 !important; }
+.journey-segment-tile-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/*
+ * The feed route number («№48») is the one thing a passenger scans for, so it takes the mode
+ * colour as a tint and an inset ring rather than filled colour: white text on several --mode-*
+ * hues falls under the WCAG AA the board itself demands.
+ */
+.journey-segment-tile-badge {
+  min-width: 2.2rem;
+  padding: .12rem .3rem;
+  border-radius: .45rem;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+  color: inherit;
+  background-color: color-mix(in srgb, var(--segment-color) 18%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--segment-color) 55%, transparent);
+}
+/*
+ * The meta line carries the per-leg time and cost, so it may not be truncated away: two clamped
+ * lines at the 12 px floor beat one ellipsized line that hides the fare.
+ */
+.journey-segment-tile-meta {
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
+  padding-left: 1.25rem;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.25;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-variant-numeric: tabular-nums;
+}
+.journey-segment-tile-meta-value { font-weight: 700; }
+/*
+ * No floating control sits over this row. An overlay on the swipe lane both swallows the first
+ * fingers of a horizontal pan and steals the tap a rider meant for the stage underneath it.
+ */
+html.dark .journey-segment-tile { border-color: var(--mg-border-subtle); }
+html.dark .journey-segment-tile-heading { color: var(--mg-ink-primary); }
+html.dark .journey-segment-tile-icon[data-icon-mode="WALK"] { color: var(--mg-ink-primary) !important; }
+html.dark .journey-segment-tile-meta { color: var(--mg-ink-secondary); }
+/*
+ * At 320 px five section labels cannot share one row, so the strip scrolls. A label cut
+ * mid-word at either edge («ивні») reads as a clipped render; fade the scrolled edges
+ * instead. The flags are set from the strip's own scroll position.
+ */
+[data-testid="trips-section-tabs"] {
+  --trips-fade-start: 0px;
+  --trips-fade-end: 0px;
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--trips-fade-start), #000 calc(100% - var(--trips-fade-end)), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 var(--trips-fade-start), #000 calc(100% - var(--trips-fade-end)), transparent 100%);
+}
+[data-testid="trips-section-tabs"][data-fade-start="true"] { --trips-fade-start: 1.25rem; }
+[data-testid="trips-section-tabs"][data-fade-end="true"] { --trips-fade-end: 1.25rem; }
+.route-map-screen[data-theme="light"] .journey-segment-tile { border-color: #d9e2ec; }
+.route-map-screen[data-theme="light"] .journey-segment-tile-heading { color: #172638; }
+.route-map-screen[data-theme="light"] .journey-segment-tile-icon[data-icon-mode="WALK"] { color: #172638 !important; }
+.route-map-screen[data-theme="light"] .journey-segment-tile-meta { color: #64748b; }
+.route-map-screen[data-theme="dark"] .journey-segment-tile { border-color: var(--mg-border-subtle); }
+.route-map-screen[data-theme="dark"] .journey-segment-tile-heading { color: var(--mg-ink-primary); }
+.route-map-screen[data-theme="dark"] .journey-segment-tile-icon[data-icon-mode="WALK"] { color: var(--mg-ink-primary) !important; }
+.route-map-screen[data-theme="dark"] .journey-segment-tile-meta { color: var(--mg-ink-secondary); }
+/*
+ * A results card summarises the journey; its tiles are labels, not tap targets, so the sheet's
+ * 52 px button floor only stretched every card. The mode label and duration fit in a 30 px row.
+ */
+.journey-result-segments .journey-segment-tile-content { min-height: 1.875rem; gap: 0; padding-block: 0; }
+.journey-result-card-content > .journey-segment-strip { margin-top: 0; }
+/* On a card the proportion bar is read, not tapped: 6 px still shows the leg ratio, while the
+   route sheet keeps the taller 11 px bar of its own scope. The soft glow lifts it off the card. */
+.journey-result-card-content .journey-segment-ribbon { height: 6px; box-shadow: 0 1px 6px color-mix(in srgb, var(--mg-blue) 28%, transparent); }
+/* Fares and their payment basis stay in route details; the compact chain shows one duration. */
+.journey-result-card-content .journey-segment-tile-meta { white-space: nowrap; overflow-wrap: normal; -webkit-line-clamp: 1; }
+/* The route-number pill is the tallest part of a tile; tighter block padding trims 3 px per
+   card without touching the 12 px label or its mode tint. */
+.journey-result-card-content .journey-segment-tile-badge { padding-block: .05rem; line-height: 1.1; }
+.search-truncation[open] .search-truncation-chevron { transform: rotate(90deg); }
+.journey-result-action-badge,
+.journey-result-transfer-badge,
+.journey-result-save-visual { border: 1px solid #D9E2EC; }
+.journey-result-action-badge,
+.journey-result-transfer-badge { min-height: 2.5rem; }
+.journey-result-action-badge { width: 2.5rem; height: 2.5rem; }
+.journey-result-transfer-badge { min-width: 2.5rem; }
+.journey-result-save-button { margin-block: 0; background-color: transparent; }
+.journey-result-save-visual { display: grid; width: 2.5rem; height: 2.5rem; place-items: center; border-radius: 999px; background: transparent; }
+html.dark .journey-result-action-badge,
+html.dark .journey-result-transfer-badge,
+html.dark .journey-result-save-visual { border-color: #223C52; }
+html.dark .journey-result-save-button { background-color: transparent; }
+.journey-result-action-badge[data-strategy] { background-color: var(--mg-blue-tint); color: var(--mg-blue-ink); }
+.journey-result-card-content .journey-result-duration {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: clamp(17px, 5vw, 22px);
+  white-space: nowrap;
+}
+.journey-result-card-content .journey-result-total-price {
+  font-size: clamp(17px, 4.8vw, 20px);
+  white-space: nowrap;
+}
+/* Only the tile icon width and the left-aligned meta are screen-specific here; the font sizes
+   must stay in the single base rule above, or a duplicate later in the sheet wins the cascade. */
+.journey-segment-tile-icon { flex-basis: 1.125rem; }
+.journey-segment-tile-meta { text-align: left; }
+@media (min-width: 640px) {
+  /* Five-leg routes fit without scrolling here, so every tile must share the
+     width; overriding only the basis (as this rule once did) left them at 0 px. */
+  .journey-segment-tile--scroll { flex: 1 1 0; }
+}
+@media (max-width: 479px) {
+  /* Only the icon width and the meta indent are screen-specific; the 12 px floor lives in the
+     base rules above and must not be re-declared here, or the small screen loses legibility. */
+  .journey-segment-tile-heading { gap: .125rem; }
+  .journey-segment-tile-icon { flex-basis: 1rem; }
+  .journey-segment-tile:not(.journey-segment-tile--scroll) .journey-segment-tile-meta {
+    padding-left: 1.125rem;
+    text-align: left;
+  }
+}
+@media (max-width: 379px) {
+  .journey-segment-tiles:has(> .journey-segment-tile:nth-child(4)) .journey-segment-tile { flex: 0 0 7.25rem; }
+}
+.route-summary-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "eyebrow actions" "title title";
+  align-items: center;
+  column-gap: .25rem;
+  row-gap: .15rem;
+}
+.route-summary-eyebrow { grid-area: eyebrow; min-width: 0; }
+.route-summary-title { grid-area: title; line-height: 1.2; overflow-wrap: anywhere; }
+.route-summary-actions { grid-area: actions; }
+/* This rule beats the utilities on the buttons it sizes, so it sets the WCAG 44 px floor itself. */
+.route-summary-actions > :is(span, button) { width: 2.75rem; height: 2.75rem; min-width: 2.75rem; }
+@media (min-width: 480px) {
+  .route-summary-heading {
+    grid-template-areas: "eyebrow actions" "title actions";
+  }
+}
+.route-summary-segments { overscroll-behavior-x: contain; scrollbar-width: none; }
+.route-summary-segments::-webkit-scrollbar { display: none; }
+.route-sheet-grabber { cursor: grab; }
+.route-sheet-grabber:active { cursor: grabbing; }
+.route-map-screen section[data-testid="route-bottom-sheet"] {
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border-top-left-radius: 2rem;
+  border-top-right-radius: 2rem;
+}
+.route-sheet-grabber__handle {
+  width: 3.25rem;
+  height: 5px;
+  border-radius: 9999px;
+  background: var(--route-grabber);
+  transition: transform 0.2s var(--mg-ease-entrance), background-color 0.2s ease;
+}
+.route-sheet-grabber:hover .route-sheet-grabber__handle {
+  background-color: var(--mg-action, #1766B4);
+}
+.route-sheet-summary--compact .route-summary-eyebrow { display: none; }
+.route-sheet-summary--compact .route-summary-heading {
+  grid-template-areas: "title actions";
+  align-items: center;
+}
+.route-sheet-summary--compact .route-summary-title {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+html.dark .route-immersive-shell {
+  background-color: var(--mg-canvas);
+  background-image: radial-gradient(ellipse at 50% -12%, rgba(113, 199, 242, .08), transparent 34rem);
+}
+html.dark .journey-result-card { background-color: var(--mg-surface-secondary); border-color: var(--mg-border-subtle); }
+html.dark .journey-result-card [data-segment-mode] { filter: saturate(1.08); }
+.app-tabbar {
+  padding-bottom: max(.45rem, env(safe-area-inset-bottom)) !important;
+  background: rgba(255,255,255,.94);
+  box-shadow: 0 -8px 28px rgba(20, 49, 87, .07);
+}
+.app-tabbar button { min-height: 2.9rem; }
+.app-tabbar button[aria-current="page"] { color: var(--mg-blue-ink); }
+html.dark .app-tabbar {
+  border-color: var(--mg-border-subtle);
+  background: var(--mg-surface-glass);
+  box-shadow: 0 -8px 28px rgba(0, 0, 0, .28);
+  color: var(--mg-ink-secondary);
+}
+html.dark .app-tabbar button[aria-current="page"] { color: var(--mg-blue-ink); }
+.auth-screen { isolation: isolate; min-height: 100svh; min-height: 100dvh; }
+.auth-screen button { min-height: 44px; }
+.auth-screen input { min-height: 48px; font-size: 16px; }
+.auth-screen h1 { text-wrap: balance; }
+.production-app :is(input, select, textarea) { accent-color: var(--mg-blue); }
+.production-app :is(article, [data-surface="card"]) { scroll-margin-bottom: 7rem; }
+/*
+ * The default card surface lives in @layer components: unlayered rules beat every Tailwind layer,
+ * and this rule used to sit outside them, repainting every <article> white and forcing its own
+ * radius — a vehicle tile written as bg-[#f6f8fc] rounded-xl rendered as a plain white card.
+ * The surface now comes from --color-marshgo-card, which html.dark already flips, so no
+ * dark-mode override is needed here anymore; the canonical card radius is normalised further down.
+ */
+@layer components {
+  .production-app :is(article, [data-surface="card"]) {
+    border: 1px solid var(--mg-line);
+    border-radius: 1.25rem;
+    background-color: var(--color-marshgo-card);
+    color: var(--color-marshgo-text);
+    box-shadow: var(--mg-card-shadow);
+  }
+}
+.production-app :is(h1, h2, h3) { letter-spacing: -.025em; }
+.production-app :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  border-radius: .9rem;
+}
+/* The blanket 44 px floor outranks a single-class component rule, which silently
+   capped .mg-route-cta below its own 52 px floor. Keep the floor, exempt the CTA. */
+.production-app :is(.journey-search-card button, .journey-offer-card, button.w-full:not(.mg-route-cta)) { min-height: 2.75rem; }
+.production-app .app-tabbar button { min-width: 3.5rem; }
+.production-app [role="status"] { line-height: 1.45; }
+
+@media (max-width: 360px) {
+  .production-app .app-tabbar button { min-width: 2.9rem; padding-inline: .35rem; }
+  .production-app .journey-search-card { padding: .65rem; }
+  .production-app .transport-mode-grid { gap: .35rem; }
+  /* At 320 px a half-card leaves the departure value 107 px against 117 px of text, so the date pair
+     stacks too; the two-column pin here is what produced that 14 px clip. The stepper+budget row is
+     exempt: the owner asked for it on one line, and its tiles wrap their own content instead. */
+  .search-screen .journey-search-card .search-trip-details:not(.search-trip-details--stack) { grid-template-columns: minmax(0, 1fr); }
+  /* «Без обмеження» measures 107 px; the default .7rem side padding left the value 106 px and the
+     ellipsis ate the tail. Half a rem gives the text its full width back. */
+  .search-screen .journey-search-card .search-trip-details--stack > .trip-tile { padding-inline: .5rem; }
+  .transport-types-inline > div:first-child { gap: .25rem; }
+  /* The two pill actions need 188 px; a nowrap heading pushed them 12 px past the 320 px viewport.
+     Wrapping the heading keeps both actions reachable inside the same 44 px row. */
+  .transport-types-inline > div:first-child h2 { font-size: .8rem; }
+}
+
+@media (max-width: 639px) {
+  .search-screen {
+    display: flex;
+    flex-direction: column;
+    gap: .65rem;
+    padding: .25rem 1rem .5rem;
+  }
+  .search-screen .home-intro { flex: none; margin: 0; padding: .65rem .85rem; border-radius: 1.2rem; }
+  .search-screen .home-title { margin-top: 0; font-size: 1.2rem; }
+  .search-screen .home-description { margin-top: .1rem; font-size: 12px; line-height: 1.35; }
+  .search-screen > .home-search-panel { flex: none; margin-top: 0; }
+  .search-screen .journey-search-card { padding: .7rem; }
+  .search-screen .journey-search-card > .relative > [role="group"] { min-height: 3.65rem; padding-block: .55rem; }
+  .search-screen .journey-search-card .search-trip-details { gap: .4rem; margin-top: .5rem; }
+  .search-screen .transport-types-inline { margin-top: .55rem; }
+  .search-screen .transport-types-inline .transport-mode-grid { gap: .35rem; }
+  .search-screen .transport-types-inline .transport-mode-grid button { min-height: 3.9rem; }
+  .search-screen .journey-search-card .search-submit { min-height: 2.8rem; margin-top: .65rem; padding-block: .7rem; }
+}
+
+@media (max-width: 639px) and (max-height: 720px) {
+  .search-screen .home-intro { padding-block: .5rem; }
+  .search-screen .home-description { display: none; }
+  .search-screen .journey-search-card > .relative > [role="group"] { padding-block: .45rem; }
+  .search-screen .transport-types-inline { margin-top: .45rem; }
+  .search-screen .journey-search-card .search-submit { margin-top: .5rem; }
+}
+
+@media (min-width: 640px) {
+  .production-app { padding-bottom: 1.5rem; }
+  .app-header { position: relative; background: transparent; backdrop-filter: none; }
+  .app-tabbar { position: sticky; margin: 1rem auto; width: min(100% - 2rem, 36rem); border: 1px solid var(--mg-line); border-radius: 1.25rem; }
+}
+
+/* Desktop is a wider presentation of the same production screens used by the
+   phone app; keep domain data and interactions shared across WebKit and web. */
+.desktop-create-label { display: none; }
+@media (min-width: 1024px) {
+  .auth-intro-screen {
+    display: grid;
+    min-height: 100vh;
+    place-items: center;
+    padding: 28px;
+  }
+  .auth-intro-screen > section {
+    display: grid;
+    grid-template-columns: minmax(0,1.15fr) minmax(310px,.85fr);
+    grid-template-rows: auto minmax(0,1fr) auto;
+    align-items: center;
+    column-gap: 56px;
+    width: min(100%, 1440px);
+    max-width: none;
+    min-height: min(860px, calc(100vh - 56px));
+    padding: 38px 54px;
+    border: 1px solid rgba(255,255,255,.22);
+    border-radius: 32px;
+    background: linear-gradient(110deg,rgba(4,17,37,.56),rgba(4,17,37,.14));
+    box-shadow: 0 28px 100px rgba(1,12,26,.32);
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+  }
+  .auth-intro-screen > section > div:first-child {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    justify-self: start;
+    margin-top: 0;
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+    text-align: left;
+  }
+  .auth-intro-screen > section > div:first-child > :first-child { margin: 0; }
+  .auth-intro-screen > section > div:first-child > strong { font-size: 2.2rem; }
+  .auth-intro-screen > section > div:first-child > p { margin: 0 0 0 10px; padding-left: 16px; border-left: 1px solid rgba(255,255,255,.4); font-size: 13px; }
+  .auth-intro-screen > section > div:nth-of-type(2) {
+    grid-column: 1;
+    grid-row: 2 / 4;
+    align-self: center;
+    max-width: 730px;
+    margin: 0;
+    padding: 32px 0;
+  }
+  .auth-intro-screen > section > div:nth-of-type(2) h1 { max-width: none; font-size: clamp(52px,6.4vw,88px); line-height: .99; }
+  .auth-intro-screen > section > div:nth-of-type(2) p:last-child { max-width: 590px; font-size: 18px; line-height: 1.55; }
+  .auth-intro-screen > section > div:nth-of-type(3) { grid-column: 2; grid-row: 3; align-self: end; }
+  .auth-intro-screen > section > div:nth-of-type(3) button { min-height: 58px; }
+  body {
+    background: #0e1f35 radial-gradient(1200px 700px at 12% -10%, rgba(23,137,244,.55), transparent 60%), radial-gradient(900px 600px at 100% 0%, rgba(125,92,255,.28), transparent 55%), linear-gradient(160deg, #0e1f35 0%, #123a73 55%, #1789f4 120%) fixed;
+  }
+  .production-app {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 80px minmax(0, 1fr);
+    column-gap: 0;
+    max-width: 1600px;
+    min-height: calc(100vh - 40px);
+    margin: 20px auto;
+    padding: 0 32px 32px;
+    /* A light, nearly opaque shell over the dark backdrop keeps text contrast high (the old 40% glass turned content mid-blue). */
+    background: linear-gradient(180deg, rgba(246,249,254,.97), rgba(236,243,252,.96));
+    -webkit-backdrop-filter: blur(40px) saturate(150%);
+    backdrop-filter: blur(40px) saturate(150%);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: var(--mg-radius-sheet);
+    box-shadow: 0 24px 80px rgba(0,0,0,0.07), inset 0 0 0 1px rgba(255,255,255,0.5);
+  }
+  @media (max-width: 1279px) {
+    .production-app { grid-template-columns: 224px minmax(0, 1fr); column-gap: 20px; padding: 0 20px 20px; margin: 12px auto; border-radius: var(--mg-radius-2xl); }
+  }
+  .production-app > .app-header {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    padding: 0;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+  }
+  .production-app > .app-tabbar {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: var(--mg-z-overlay);
+    width: 100%;
+    height: auto;
+    margin: 0;
+    padding: 8px 0 max(.45rem, env(safe-area-inset-bottom));
+    border: 0;
+    border-top: 1px solid rgba(255,255,255,.7);
+    border-radius: var(--mg-radius-2xl) var(--mg-radius-2xl) 0 0;
+    background: rgba(255,255,255,.96);
+    -webkit-backdrop-filter: blur(22px);
+    backdrop-filter: blur(22px);
+    box-shadow: 0 -8px 28px rgba(20,49,87,.1);
+  }
+  .app-tabbar-inner {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    align-items: center;
+    max-width: 760px;
+    margin-inline: auto;
+    gap: 0;
+    padding: 0 12px;
+  }
+  .app-tabbar-inner button:not(.app-create-button) {
+    width: 100%;
+    min-height: 48px;
+    min-width: 0;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    padding: 4px 2px;
+    border-radius: var(--mg-radius-lg);
+    font-size: 12px;
+  }
+  .app-tabbar-inner button:not(.app-create-button):hover { background: rgba(37, 99, 235, 0.05); }
+  .app-tabbar-inner button:not(.app-create-button)[aria-current="page"] {
+    color: var(--mg-blue);
+    background: transparent;
+    box-shadow: none;
+  }
+  .app-tabbar-inner button:not(.app-create-button)[aria-current="page"] svg { color: var(--mg-blue); }
+  .app-tabbar-inner button:not(.app-create-button) > span { font-size: 12px; }
+  .app-tabbar-inner button:not(.app-create-button)[aria-current="page"] > span { font-weight: 700; color: var(--mg-blue-ink); }
+  .app-tabbar-inner .app-create-button {
+    order: initial;
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: center;
+    width: 56px;
+    height: 56px;
+    min-height: 56px;
+    margin: -20px 0 0;
+    padding: 0;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #13D58A, #00B976);
+    color: #04251A;
+  }
+  .desktop-create-label { display: none; }
+  .production-app > .pt-1 {
+    grid-column: 1;
+    grid-row: 2;
+    min-width: 0;
+    padding-top: 24px;
+    padding-bottom: 100px;
+  }
+  .production-app > .pt-1 > :not(.navigation-screen) {
+    width: 100%;
+    max-width: 1280px;
+    margin-inline: auto;
+  }
+  .production-app > [role="status"] {
+    grid-column: 1;
+    grid-row: 2;
+    align-self: start;
+    z-index: 2;
+    width: min(100%, 1280px);
+    max-width: none;
+    margin: 8px auto 0;
+  }
+  .production-app > .pt-1:has(.home-screen) > .home-screen,
+  .production-app > .pt-1 > .journey-results,
+  .production-app > .pt-1 > .max-w-xl {
+    width: 100%;
+    max-width: 1280px;
+    padding-inline: 0;
+  }
+  .home-screen {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 18px;
+    align-content: start;
+  }
+  .home-screen > .home-intro {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    min-height: 330px;
+    margin: 0;
+    padding: 40px 44px 150px;
+    border: 0;
+    border-radius: var(--mg-radius-3xl);
+    color: white;
+    background: #092345 url('/images/welcome-kyiv-v1.jpg') center 53% / cover no-repeat;
+    box-shadow: 0 18px 44px rgba(10,36,70,.2);
+  }
+  .home-screen > .home-intro::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg,rgba(4,17,37,.88),rgba(4,17,37,.42) 54%,rgba(4,17,37,.06)),linear-gradient(0deg,rgba(4,17,37,.55),transparent 58%);
+    pointer-events: none;
+  }
+  .home-screen > .home-intro::after { display: none; }
+  .home-screen .home-greeting { color: #d9ecff; font-size: 12px; letter-spacing: .18em; text-transform: uppercase; }
+  .home-screen .home-title { position: relative; max-width: 650px; margin-top: 10px; color: white; font-size: clamp(34px,3.4vw,52px); line-height: 1.04; }
+  .home-screen .home-description { max-width: 540px; margin-top: 14px; color: #e2efff; font-size: 16px; line-height: 1.6; }
+  /* The search card overlaps the photo so it is visible without scrolling; transport choices follow below on a light surface. */
+  .home-screen > .home-search-panel { z-index: var(--mg-z-base); grid-column: 1 / -1; grid-row: 2; margin: -128px 28px 0; }
+  .journey-search-card {
+    border-radius: var(--mg-radius-3xl);
+    padding: 24px;
+    background: rgba(255,255,255,0.94);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+    box-shadow: 0 20px 48px rgba(9,35,69,0.14);
+    border: 1px solid rgba(255,255,255,1);
+  }
+  .home-screen > .home-map-cta { grid-column: 1 / -1; grid-row: 3; width: auto; margin: 0 28px; }
+  .home-screen > .home-transport-panel { grid-column: 1 / -1; grid-row: 4; margin: 0 28px; padding: 20px; border-radius: var(--mg-radius-2xl); background: white; box-shadow: 0 10px 30px rgba(9,35,69,.06); }
+  .home-screen .transport-mode-grid { grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); }
+  .home-screen > .home-demand-cta { grid-column: 1 / -1; grid-row: 2; margin: 0; min-height: 54px; }
+  .home-screen > .home-offer-heading { grid-column: 1 / -1; grid-row: 3; margin-top: 4px; }
+  .home-screen > .home-offer-list,
+  .home-screen > .home-offer-empty { grid-column: 1 / -1; grid-row: 4; }
+  .home-screen > .home-offer-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .home-screen > .home-navigation-cta { grid-column: 1 / -1; grid-row: 5; margin-top: 0; }
+  .journey-results { display: grid; grid-template-columns: minmax(320px,.6fr) minmax(0,1.4fr); column-gap: 32px; align-items: start; }
+  .journey-results > :first-child,
+  .journey-results > :nth-child(2) { grid-column: 1 / -1; }
+  .journey-results > :nth-child(3) { grid-column: 1; position: sticky; top: 24px; }
+  .journey-results > :nth-child(n+4) { grid-column: 2; }
+  .app-header > div:first-child { min-width: 240px; }
+  .app-header > div:last-child { margin-left: auto; }
+
+  /* Make lists and articles grid-based on desktop */
+  .production-app .space-y-3 {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 20px;
+    row-gap: 20px;
+  }
+  .production-app .space-y-3 > * {
+    margin-top: 0;
+    border-radius: 24px;
+    background: rgba(255,255,255,0.7);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.6);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .production-app .space-y-3 > *:hover {
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+    background: rgba(255,255,255,0.95);
+  }
+}
+@media (min-width: 1024px) and (max-height: 760px) {
+  .home-screen > .home-intro { min-height: 300px; padding-bottom: 140px; }
+}
+@media (min-width: 640px) and (max-width: 1023px) {
+  .production-app > .pt-1 > .home-screen,
+  .production-app > .pt-1 > .journey-results,
+  .production-app > .pt-1 > .max-w-xl { max-width: 760px; }
+  .home-screen > .home-intro { padding: 24px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+
+/* Unlayered CSS outranks every Tailwind layer, so this reset outside @layer base was
+   overriding each text-* utility on every control and leaving them all at the inherited size. */
+@layer base {
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  button {
+    touch-action: manipulation;
+  }
+}
+
+html:has(.auth-screen),
+body:has(.auth-screen) {
+  background-color: #081b35;
+}
+
+/* The entry screen keeps its city photograph, but the navy treatment—not the warm photo—sets
+   the first impression. The image remains editorial texture under the same monochrome palette. */
+.auth-intro-screen {
+  background-color: var(--mg-canvas);
+}
+.auth-intro-screen > section {
+  min-height: calc(100svh - max(1.5rem, env(safe-area-inset-bottom)) - env(safe-area-inset-top));
+}
+.auth-intro-screen > img {
+  filter: saturate(.28) brightness(.38);
+}
+.auth-intro-screen > .absolute.inset-0 {
+  background: linear-gradient(180deg, rgba(7, 21, 33, .66) 0%, rgba(7, 21, 33, .78) 42%, rgba(7, 21, 33, .97) 100%);
+}
+.auth-screen__shade--login {
+  background:
+    radial-gradient(ellipse at 55% 35%, color-mix(in srgb, var(--mg-auth-accent) 8%, transparent), transparent 48%),
+    linear-gradient(180deg, var(--mg-auth-surface), var(--mg-auth-canvas));
+}
+
+html.dark body {
+  background-color: var(--mg-canvas);
+  color: var(--mg-ink-primary);
+}
+
+.font-display {
+  font-family: 'Syne', 'Plus Jakarta Sans', sans-serif;
+}
+
+/* The boarding pass is a printed artifact, not app chrome: it keeps one navy contract in both
+   themes so the same QR tile and stroke stay legible on any screen it is opened from. */
+.marsh-pass-ticket {
+  --pass-screen: var(--mg-canvas);
+  --pass-screen-ink: var(--mg-ink-primary);
+  --pass-surface: var(--mg-surface-primary);
+  --pass-stroke: var(--mg-blue);
+  --pass-ink: var(--mg-ink-primary);
+  --pass-ink-secondary: var(--mg-ink-secondary);
+  --pass-ink-muted: var(--mg-ink-muted);
+  --pass-track: color-mix(in srgb, var(--mg-blue) 32%, transparent);
+  --pass-confirm: #2CD67D;
+  --pass-confirm-surface: rgba(44, 214, 125, .14);
+  --pass-badge-top: var(--mg-action-hover);
+  --pass-badge-bottom: var(--mg-action);
+  background-image: radial-gradient(ellipse at 50% -18%, color-mix(in srgb, var(--mg-blue) 11%, transparent), transparent 30rem);
+}
+.marsh-pass-ticket > div > article { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pass-ink) 5%, transparent), var(--mg-card-shadow); }
+.marsh-pass-ticket__route-track { opacity: .92; }
+
+/* Safe area padding utilities */
+.pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.pt-safe {
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: #1E3A5F;
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #254774;
+}
+
+/* Horizontal chip rows scroll by swipe/drag; the native bar only adds visual noise. */
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* ---- Dark theme: remaps the light palette used by Tailwind utilities across the production UI ---- */
+html.dark body { background-color: var(--mg-canvas); color: var(--mg-ink-primary); }
+html.dark .production-app, html.dark .journey-results, html.dark .home-screen { color: var(--mg-ink-primary); }
+html.dark :is(.bg-white, .bg-white\/95, .bg-white\/90, .bg-white\/80, .bg-\[\#101E38\], .bg-\[\#0B1730\]) { background-color: var(--mg-surface-primary); }
+html.dark .journey-results .journey-result-card { background-color: var(--mg-surface-secondary); }
+html.dark .journey-results [aria-label="Режим пошуку маршрутів"] > button:not([aria-pressed="true"]) { background-color: var(--mg-surface-primary); }
+html.dark :is(.bg-slate-50, .bg-\[\#f6f8fc\], .bg-\[\#F1F5F9\], .bg-\[\#f5f8fd\], .bg-\[\#F5F8FD\]) { background-color: var(--mg-canvas); }
+html.dark :is(.bg-slate-100, .hover\:bg-slate-50:hover) { background-color: var(--mg-surface-secondary); }
+html.dark :is(.bg-slate-200, .hover\:bg-slate-100:hover, .hover\:bg-slate-200:hover) { background-color: var(--mg-surface-elevated); }
+html.dark :is(.bg-blue-50, .bg-\[\#EAF3FF\], .bg-\[\#E8F8F1\]) { background-color: color-mix(in srgb, var(--mg-blue) 14%, transparent); }
+html.dark :is(.bg-emerald-50, .bg-\[\#F0FDF4\]) { background-color: rgba(44, 214, 125, .12); }
+html.dark :is(.bg-amber-50, .bg-\[\#FFF4DB\]) { background-color: rgba(255, 176, 32, .12); }
+/* The amber surfaces above collapse to a faint dark tint, so their brown ink has to flip with them:
+   measured on the public build, every warning badge sat at 2.4:1 against that tint. */
+html.dark :is(.bg-amber-50, .bg-\[\#FFF4DB\]) :is(.text-amber-600, .text-amber-700, .text-amber-800, .text-amber-900, .text-\[\#8A5A12\], .text-\[\#AE6C00\]),
+html.dark :is(.text-amber-600, .text-amber-700, .text-amber-800, .text-amber-900, .text-\[\#8A5A12\], .text-\[\#AE6C00\]):is(.bg-amber-50, .bg-\[\#FFF4DB\]) { color: #F3D38C; }
+html.dark :is(.bg-rose-50, .bg-red-50) { background-color: rgba(255, 90, 106, .12); }
+html.dark :is(.text-\[\#0E1F35\], .text-\[\#081b35\], .text-slate-900, .text-slate-800, .text-slate-700, .text-\[\#14243B\]) { color: var(--mg-ink-primary); }
+html.dark :is(.text-slate-600, .text-slate-500, .text-\[\#62718A\]) { color: var(--mg-ink-secondary); }
+html.dark :is(.text-slate-400, .text-slate-300) { color: var(--mg-ink-muted); }
+html.dark :is(.text-blue-600, .text-blue-700, .text-blue-800, .text-blue-900) { color: var(--mg-blue); }
+html.dark :is(.text-emerald-600, .text-emerald-700, .text-emerald-800, .text-emerald-900, .text-green-600, .text-green-700) { color: #74E0A1; }
+html.dark :is(.text-amber-600, .text-amber-700, .text-amber-800, .text-amber-900, .text-amber-900\/80) { color: #FFD27A; }
+html.dark :is(.text-rose-600, .text-rose-700, .text-rose-800, .text-rose-900, .text-red-600, .text-red-700, .text-red-800, .text-red-900) { color: #FF9CA7; }
+/* Non-semantic utility hues collapse to the blue accent; green, amber and red remain reserved for status. */
+html.dark :is(.text-indigo-600, .text-indigo-700, .text-violet-600, .text-violet-700, .text-purple-600, .text-purple-700, .text-cyan-600, .text-cyan-700, .text-sky-600, .text-sky-700, .text-teal-600, .text-teal-700, .text-teal-800, .text-orange-600, .text-orange-700, .text-orange-800) { color: var(--mg-blue); }
+html.dark :is(.border-slate-100, .border-slate-200, .border-slate-300, .border-\[\#E5EDF7\], .border-\[\#EEF3F9\], .border-\[\#DFE7F1\], .border-t, .border-b) { border-color: var(--mg-border-subtle); }
+html.dark .border-blue-200 { border-color: var(--mg-border-medium); }
+html.dark .border-emerald-200 { border-color: #0D4E3F; }
+html.dark .border-rose-200 { border-color: #55192C; }
+html.dark .border-amber-200 { border-color: #573A12; }
+/* ---- Dark theme: the rest of the registry ----
+   Two classes of defect hid here. Alpha tints (bg-blue-50/70, bg-slate-50/80, bg-amber-50/95) are
+   separate Tailwind selectors, so `:is(.bg-blue-50)` never matched them and whole panels stayed
+   #eff6ff near-white over a graphite canvas — with their text-slate ink already flipped to light,
+   that is white-on-white. And the -100 chips of every accent hue were unmapped for the same reason.
+   Each maps to the same hue family as its -50 partner, so one transport/semantic colour still reads
+   as one colour in both themes. */
+html.dark :is(.bg-blue-50\/70, .bg-blue-50\/60, .bg-blue-50\/40) { background-color: color-mix(in srgb, var(--mg-blue) 12%, transparent); }
+html.dark :is(.bg-emerald-50\/80, .bg-emerald-50\/70) { background-color: rgba(44, 214, 125, .11); }
+html.dark :is(.bg-amber-50\/95, .bg-amber-50\/70) { background-color: rgba(255, 176, 32, .12); }
+html.dark :is(.bg-slate-50\/80, .bg-slate-50\/70) { background-color: var(--mg-canvas); }
+html.dark :is(.bg-slate-100\/70, .bg-slate-100\/80) { background-color: color-mix(in srgb, var(--mg-surface-secondary) 80%, transparent); }
+html.dark :is(.bg-slate-200\/70, .bg-slate-200\/80) { background-color: var(--mg-surface-elevated); }
+html.dark :is(.bg-blue-100) { background-color: color-mix(in srgb, var(--mg-blue) 18%, transparent); }
+html.dark :is(.bg-emerald-100, .bg-green-100) { background-color: rgba(44, 214, 125, .16); }
+html.dark :is(.bg-amber-100) { background-color: rgba(255, 176, 32, .16); }
+html.dark :is(.bg-rose-100, .bg-red-100) { background-color: rgba(255, 90, 106, .16); }
+html.dark :is(.bg-indigo-50, .bg-indigo-100, .bg-violet-100, .bg-purple-50, .bg-cyan-50, .bg-cyan-100, .bg-sky-50, .bg-sky-100, .bg-teal-50, .bg-teal-50\/70) { background-color: color-mix(in srgb, var(--mg-blue) 14%, transparent); }
+html.dark :is(.bg-orange-50, .bg-orange-100) { background-color: color-mix(in srgb, var(--mg-surface-elevated) 72%, transparent); }
+html.dark :is(.border-blue-100, .border-blue-200\/60, .border-blue-200\/40) { border-color: var(--mg-border-medium); }
+html.dark :is(.border-emerald-100, .border-emerald-200\/60) { border-color: #0D4E3F; }
+html.dark :is(.border-rose-100, .border-red-200, .border-red-200\/60, .border-red-100) { border-color: #55192C; }
+html.dark :is(.border-amber-100) { border-color: #573A12; }
+html.dark :is(.border-teal-200) { border-color: #14464A; }
+html.dark :is(.border-slate-200\/80, .border-slate-200\/70, .border-slate-200\/60, .border-slate-200\/50, .border-slate-100\/70) { border-color: var(--mg-border-subtle); }
+html.dark .journey-results [aria-label="Ранжування маршрутів"] > button:disabled {
+  opacity: 1;
+  background-color: var(--mg-canvas);
+  border-color: var(--mg-border-subtle);
+  color: var(--mg-ink-muted);
+}
+html.dark :is(.divide-slate-100 > :not([hidden]) ~ :not([hidden])) { border-color: var(--mg-border-subtle); }
+html.dark :is(input, textarea, select) { background-color: var(--mg-surface-secondary); color: var(--mg-ink-primary); border-color: var(--mg-border-subtle); }
+html.dark ::placeholder { color: var(--mg-ink-muted); }
+html.dark :is(.shadow-sm, .shadow-md) { box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+html.dark .app-tabbar, html.dark .app-header { background-color: var(--mg-surface-glass); }
+html.dark .journey-search-card { background: var(--mg-surface-primary); border-color: var(--mg-border-subtle); }
+html.dark .maplibregl-ctrl-group { background: var(--mg-surface-primary); }
+html.dark .maplibregl-ctrl-group button .maplibregl-ctrl-icon { filter: invert(1); }
+html.dark .home-screen .home-intro { background: linear-gradient(145deg, var(--mg-surface-primary), var(--mg-surface-secondary)); border-color: var(--mg-border-subtle); box-shadow: none; }
+html.dark .home-screen .home-title { color: var(--mg-ink-primary); }
+html.dark .home-screen .home-description { color: var(--mg-ink-secondary); }
+html.dark .home-screen .home-greeting { color: #8CC4FF; }
+html.dark .home-screen .journey-search-card {
+  border-color: var(--mg-border-subtle);
+  background: var(--mg-surface-primary);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .26);
+}
+html.dark .home-screen .journey-search-card label { background-color: var(--mg-surface-secondary); }
+html.dark .home-screen .journey-search-card button:not([type="submit"]):not([data-field-action]) {
+  background-color: var(--mg-surface-secondary);
+  color: var(--mg-ink-primary);
+}
+html.dark .search-screen .home-intro { border-color: var(--mg-border-medium); }
+html.dark .transport-mode-grid > button:disabled {
+  border-color: var(--mg-border-subtle);
+  background-color: var(--mg-surface-secondary);
+  color: var(--mg-ink-muted);
+}
+html.dark .journey-result-card { border-color: var(--mg-border-subtle); box-shadow: var(--mg-card-shadow); }
+html.dark .coverage-details[open] { border-color: var(--mg-border-medium); }
+.coverage-details[open] .coverage-chevron { transform: rotate(180deg); }
+
+/* ---- Motion foundation -------------------------------------------------
+   One shared vocabulary so screens feel alive without every component
+   inventing its own duration; the global reduced-motion guard above wins. */
+:root {
+  --mg-ease-standard: cubic-bezier(.32, .72, 0, 1);
+  --mg-ease-entrance: cubic-bezier(.16, .84, .28, 1);
+  --mg-ease-exit: cubic-bezier(.4, 0, 1, 1);
+  --mg-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --mg-dur-instant: 90ms;
+  --mg-dur-tap: 120ms;
+  --mg-dur-fast: 180ms;
+  --mg-dur-base: 260ms;
+  --mg-dur-slow: 420ms;
+}
+
+@keyframes mg-rise {
+  from { opacity: 0; transform: translate3d(0, 10px, 0); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes mg-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes mg-pop {
+  0% { opacity: 0; transform: scale(.94); }
+  70% { transform: scale(1.015); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes mg-shimmer {
+  from { background-position: 180% 0; }
+  to { background-position: -80% 0; }
+}
+@keyframes mg-breathe {
+  0%, 100% { opacity: .55; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.35); }
+}
+@keyframes mg-wait {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .62; }
+}
+
+/* Entrance utilities: elements opt in and stagger with --mg-stagger-i. */
+.mg-rise, .mg-pop { animation-duration: var(--mg-dur-slow); animation-fill-mode: both; animation-timing-function: var(--mg-ease-entrance); }
+.mg-rise { animation-name: mg-rise; }
+.mg-pop { animation-name: mg-pop; }
+.mg-fade { animation: mg-fade var(--mg-dur-base) var(--mg-ease-standard) both; }
+.mg-stagger { animation-delay: calc(var(--mg-stagger-i, 0) * var(--mg-stagger-step)); }
+
+/* Tactile press feedback, kept subtle enough to read as weight, not jitter. */
+.mg-press { transition: transform var(--mg-dur-tap) var(--mg-ease-standard), box-shadow var(--mg-dur-fast) var(--mg-ease-standard), background-color var(--mg-dur-fast) var(--mg-ease-standard), border-color var(--mg-dur-fast) var(--mg-ease-standard); }
+.mg-press:active:not(:disabled) { transform: scale(.975); }
+@media (hover: hover) and (pointer: fine) {
+  .mg-press:hover { transform: translateY(-1px); }
+  .mg-press:active:not(:disabled) { transform: scale(.98); }
+}
+
+/* Loading placeholder that reads as "data is arriving" instead of a dead panel. */
+.mg-skeleton {
+  background-image: linear-gradient(100deg, rgba(148, 163, 184, .12) 30%, rgba(148, 163, 184, .28) 48%, rgba(148, 163, 184, .12) 66%);
+  background-size: 220% 100%;
+  animation: mg-shimmer 1.5s linear infinite;
+  border-radius: var(--mg-radius-md);
+}
+.mg-live-dot { animation: mg-breathe 2.4s var(--mg-ease-standard) infinite; }
+
+@keyframes mg-slide-down {
+  from { opacity: 0; transform: translate3d(0, -8px, 0); }
+  to { opacity: 1; transform: none; }
+}
+/* These two names were already used across modals and views but had no
+   definition, so every one of those entrances rendered as an instant pop. */
+.animate-fadeIn { animation: mg-fade var(--mg-dur-base) var(--mg-ease-standard) both; }
+.animate-slideDown { animation: mg-slide-down var(--mg-dur-base) var(--mg-ease-entrance) both; }
+
+/* Journey results land in reading order, and every card answers to a press. */
+.journey-results [data-testid="journey-result-card"] { animation: mg-rise var(--mg-dur-base) var(--mg-ease-entrance) both; }
+.journey-results [data-testid="journey-result-card"]:nth-of-type(1) { animation-delay: 40ms; }
+.journey-results [data-testid="journey-result-card"]:nth-of-type(2) { animation-delay: 100ms; }
+.journey-results [data-testid="journey-result-card"]:nth-of-type(3) { animation-delay: 160ms; }
+.journey-results [data-testid="journey-result-card"]:nth-of-type(4) { animation-delay: 220ms; }
+.journey-results [data-testid="journey-result-card"]:nth-of-type(n+5) { animation-delay: 280ms; }
+.journey-results [data-testid="journey-result-card"] { transition: box-shadow var(--mg-dur-fast) var(--mg-ease-standard), border-color var(--mg-dur-fast) var(--mg-ease-standard), transform var(--mg-dur-tap) var(--mg-ease-standard); }
+.journey-results [data-testid="journey-result-card"]:active { transform: scale(.99); }
+@media (hover: hover) and (pointer: fine) {
+  .journey-results [data-testid="journey-result-card"]:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(30, 64, 110, .14); }
+  html.dark .journey-results [data-testid="journey-result-card"]:hover { box-shadow: 0 10px 28px rgba(0, 0, 0, .42), 0 0 0 1px color-mix(in srgb, var(--mg-blue) 25%, transparent); }
+}
+/* The search button is the busiest control on the screen: make its waiting state obvious. */
+.search-submit { position: relative; overflow: hidden; background: var(--mg-action); }
+/* Same slow sheen as the route CTA: one primary-action language across the app. */
+.search-submit:not(:disabled)::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 45%;
+  transform: skewX(-18deg);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .2), transparent);
+  pointer-events: none;
+  animation: mg-cta-sheen 4.4s var(--mg-ease-standard) infinite;
+}
+.search-submit:not(:disabled) { transition: transform var(--mg-dur-tap) var(--mg-ease-standard), box-shadow var(--mg-dur-fast) var(--mg-ease-standard), filter var(--mg-dur-fast) var(--mg-ease-standard); }
+.search-submit:active:not(:disabled) { transform: scale(.985); }
+.search-submit:disabled { animation: mg-wait 1.6s var(--mg-ease-standard) infinite; }
+
+/* Data-quality disclaimers stay verbatim; they only cost one line until the rider asks for the rest. */
+.search-notices summary::-webkit-details-marker { display: none; }
+.search-notices summary:focus-visible { outline: 2px solid var(--mg-blue); outline-offset: -2px; }
+.search-notices-chevron { transform: rotate(90deg); transition: transform var(--mg-dur-fast) var(--mg-ease-standard); }
+.search-notices[open] .search-notices-chevron { transform: rotate(-90deg); }
+.search-notices[open] .search-notices-list { animation: mg-fade var(--mg-dur-fast) var(--mg-ease-standard) both; }
+
+/* Carpool offers are real bookable results, so they enter in order and answer to a press. */
+.journey-offer-card { animation: mg-rise var(--mg-dur-base) var(--mg-ease-entrance) both; transition: box-shadow var(--mg-dur-fast) var(--mg-ease-standard), border-color var(--mg-dur-fast) var(--mg-ease-standard), transform var(--mg-dur-tap) var(--mg-ease-standard); }
+.journey-offer-card:nth-of-type(1) { animation-delay: 40ms; }
+.journey-offer-card:nth-of-type(2) { animation-delay: 100ms; }
+.journey-offer-card:nth-of-type(3) { animation-delay: 160ms; }
+.journey-offer-card:nth-of-type(n+4) { animation-delay: 220ms; }
+.journey-offer-card:active { transform: scale(.99); }
+@media (hover: hover) and (pointer: fine) {
+  .journey-offer-card:hover { border-color: #C9DCF2; box-shadow: 0 10px 28px rgba(30, 64, 110, .12); }
+}
+
+/* The seat steppers sit at 24x32 px. Extend the hit area to 44x44 with an
+   overlay so the three-column row keeps its measured width. */
+.search-trip-details button[aria-label$="пасажирів"] { position: relative; }
+.search-trip-details button[aria-label$="пасажирів"]::after { content: ''; position: absolute; top: -6px; bottom: -6px; left: -10px; right: -10px; }
+
+/* Bottom navigation: the selected tab pops like a dock icon — press squash,
+   inflate, settle — as tap feedback; the tab remounts its icon on every tap so
+   even re-tapping the active tab replays the pop. */
+.app-tabbar-inner button { transition: background-color var(--mg-dur-fast) var(--mg-ease-standard), color var(--mg-dur-fast) var(--mg-ease-standard); }
+.app-tabbar-inner button svg { transition: transform var(--mg-dur-base) var(--mg-ease-entrance); }
+.app-tabbar-inner button[aria-current="page"] svg { transform: translateY(-1px) scale(1.08); }
+@keyframes mg-tab-icon-dock-pop {
+  0% { transform: translateY(0) scale(.9); }
+  42% { transform: translateY(-.18rem) scale(1.22); }
+  72% { transform: translateY(.04rem) scale(.98); }
+  100% { transform: translateY(-1px) scale(1.08); }
+}
+.app-tabbar-inner button:not(.app-create-button)[aria-current="page"] svg {
+  animation: mg-tab-icon-dock-pop var(--mg-dur-slow) var(--mg-ease-entrance) both;
+}
+.app-tabbar-inner button:active svg { transform: scale(.9); }
+
+/* Small print carries real information, so it must not fall below AA in either theme. */
+.production-app .text-slate-400 { color: #64748B; }
+html.dark .production-app .dark\:text-slate-400 { color: #A9BACD; }
+
+/* Canonical home follows the owner reference: mountain cover, account trip card,
+   four color-coded square actions, popular routes, above the fixed tab bar. */
+.home-hero--canonical { min-height: 0; overflow: hidden; }
+/* The banner is a content box, not a poster: a fixed height with overflow:hidden
+   silently cut the publish CTA in half on 390×844. Keep the rhythm as a floor. */
+.home-canonical-banner { min-height: clamp(10rem, 20svh, 11.75rem); }
+/* The promo absorbs leftover hero height so the tab bar never floats over dead space;
+   the cap keeps it a banner, not a poster, on tall phones (iPhone 16 / 15 Pro Max). */
+.home-marshpass-promo { flex-grow: 1; max-height: clamp(11.25rem, 21svh, 12.25rem); }
+.home-action-grid { flex: 0 0 auto; grid-template-rows: repeat(2, clamp(6.2rem, 12.5svh, 6.8rem)); gap: .5rem; }
+/* A single navy surface family keeps all four actions calm; hierarchy comes from blue glyphs
+   and the primary search action, while labels stay high-contrast ink. */
+.home-action-card {
+  --home-ink: var(--color-marshgo-text);
+  --home-sub: var(--color-marshgo-muted);
+  border-radius: var(--mg-radius-xl);
+  border-color: var(--color-marshgo-border);
+  background: var(--home-surface, var(--color-marshgo-card));
+  box-shadow: var(--mg-card-shadow), inset 0 1px 0 color-mix(in srgb, var(--mg-ink-primary) 5%, transparent);
+  color: var(--home-ink);
+}
+.home-action-card--navigation,
+.home-action-card--transport,
+.home-action-card--publish { --home-accent: var(--mg-blue-ink); --home-surface: var(--mg-surface-secondary); }
+.home-action-card--search {
+  --home-accent: var(--mg-blue);
+  --home-surface: var(--mg-surface-secondary);
+}
+.home-action-icon { border: 1px solid var(--mg-border-subtle); color: var(--mg-blue-ink); background: var(--mg-blue-tint); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--mg-ink-primary) 6%, transparent); }
+.home-action-card--search .home-action-icon { color: var(--mg-blue); background: color-mix(in srgb, var(--mg-blue) 16%, transparent); }
+.home-action-card__title { color: var(--home-ink); text-wrap: balance; }
+.home-action-card__subtitle { color: var(--home-sub); }
+.home-action-card:focus-visible { outline: 3px solid var(--mg-blue); outline-offset: 3px; }
+.home-action-card__hint {
+  position: absolute; right: .8rem; top: 50%; opacity: 0;
+  transform: translate(-6px, -50%);
+  transition: opacity var(--mg-dur-fast) var(--mg-ease-standard), transform var(--mg-dur-base) var(--mg-ease-standard);
+}
+@media (hover: hover) and (pointer: fine) {
+  .home-action-card:hover { border-color: color-mix(in srgb, var(--mg-blue) 45%, var(--mg-border-medium)); box-shadow: 0 8px 22px rgba(17, 47, 88, .12); }
+  .home-action-card:hover .home-action-card__hint { opacity: 1; transform: translate(0, -50%); }
+  .home-action-card:hover .home-action-icon { transform: translateY(-1px) scale(1.06); }
+}
+.home-action-icon { transition: transform var(--mg-dur-base) var(--mg-ease-entrance); }
+.home-popular-routes { display: flex; flex-direction: column; flex-grow: 1; }
+.home-popular-routes__row { flex: 1; }
+.home-popular-route { height: auto; min-height: 4rem; }
+.home-banner-copy, .home-banner-media { animation: mg-fade var(--mg-dur-slow) var(--mg-ease-standard) both; }
+.home-marshpass-slot { animation: mg-rise var(--mg-dur-slow) var(--mg-ease-entrance) both; }
+.home-action-grid > .home-action-card { animation: mg-rise var(--mg-dur-slow) var(--mg-ease-entrance) both; animation-delay: calc(90ms + var(--mg-stagger-i, 0) * var(--mg-stagger-step)); }
+.home-popular-routes { animation: mg-rise var(--mg-dur-slow) var(--mg-ease-entrance) 260ms both; }
+.home-popular-route { transition: transform var(--mg-dur-base) var(--mg-ease-entrance), box-shadow var(--mg-dur-base) var(--mg-ease-standard); }
+.home-popular-route img { transition: transform var(--mg-dur-slow) var(--mg-ease-standard); }
+@media (hover: hover) and (pointer: fine) {
+  .home-popular-route:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(17, 47, 88, .16); }
+  .home-popular-route:hover img { transform: scale(1.06); }
+}
+html.dark .home-canonical-banner > span[aria-hidden="true"] { background: linear-gradient(90deg,rgba(7,21,33,.96),rgba(7,21,33,.82) 60%,rgba(7,21,33,.18)); }
+html.dark .home-canonical-banner { border-color: var(--mg-border-medium); box-shadow: var(--mg-card-shadow); }
+html.dark .home-trip-card { background: var(--mg-surface-primary); color: var(--mg-ink-primary); }
+html.dark .home-canonical-banner h1 { color: var(--mg-ink-primary); }
+html.dark .home-canonical-banner p { color: var(--mg-ink-secondary); }
+html.dark .home-trip-card > span:nth-child(2) > span:nth-child(2) { color: var(--mg-ink-primary); }
+html.dark .home-screen .home-intro { border-radius: 1.4rem; }
+html.dark .home-action-card { --home-ink: var(--color-marshgo-text); --home-sub: var(--color-marshgo-muted); --home-surface: var(--color-marshgo-card); border-color: var(--color-marshgo-border); box-shadow: var(--mg-card-shadow), inset 0 1px 0 color-mix(in srgb, var(--mg-ink-primary) 5%, transparent); }
+html.dark .home-action-icon { color: var(--mg-blue); background: var(--mg-blue-tint); box-shadow: none; }
+html.dark .home-action-card--search .home-action-icon { background: color-mix(in srgb, var(--mg-blue) 16%, transparent); }
+html.dark .home-popular-routes h2 { color: var(--mg-ink-primary); }
+html.dark .home-popular-route { border-color: var(--mg-border-subtle); }
+
+/* Active Home ticket uses the same semantic ramp as the full-screen ticket. QR remains white. */
+.home-marshpass-card { background: var(--mg-surface-primary); border-color: var(--mg-border-medium); color: var(--mg-ink-primary); }
+.home-marshpass-card [class*="text-blue-400"] { color: var(--mg-blue); }
+.home-marshpass-card [class~="bg-blue-600"] { background-color: var(--mg-action); }
+.home-marshpass-card [class~="bg-blue-600/20"] { background-color: color-mix(in srgb, var(--mg-blue) 20%, transparent); }
+.home-marshpass-card [class*="border-blue-500/"] { border-color: color-mix(in srgb, var(--mg-blue) 40%, transparent); }
+.home-marshpass-card[class*="bg-gradient-to-br"] { background-image: none; }
+.home-marshpass-card [class*="text-slate-300"] { color: var(--mg-ink-secondary); }
+.home-marshpass-card:focus-visible { outline: 2px solid var(--mg-blue); outline-offset: 3px; }
+
+/* Shared interaction and dark-surface polish from the production navigation. */
+html.dark .production-app .app-tabbar {
+  background-color: var(--color-marshgo-card);
+  color: var(--color-marshgo-text);
+}
+html.dark .app-tabbar-inner button:not(.app-create-button)[aria-current="page"] {
+  background: var(--mg-blue-tint);
+}
+html.dark .app-tabbar { border-color: var(--mg-line); }
+.production-app button:disabled { cursor: not-allowed; }
+.production-app :is(button, a) {
+  transition:
+    background-color var(--mg-dur-fast) var(--mg-ease-standard),
+    color var(--mg-dur-fast) var(--mg-ease-standard),
+    border-color var(--mg-dur-fast) var(--mg-ease-standard),
+    box-shadow var(--mg-dur-fast) var(--mg-ease-standard),
+    transform var(--mg-dur-fast) var(--mg-ease-standard);
+}
+@media (hover: hover) and (pointer: fine) {
+  .production-app .app-tabbar-inner button:not(.app-create-button):hover {
+    background: color-mix(in srgb, var(--mg-blue) 9%, transparent);
+    color: var(--mg-blue);
+  }
+  .production-app article:hover { border-color: #cbd9ec; }
+  html.dark .production-app article:hover { border-color: var(--mg-border-medium); }
+}
+@media (max-width: 639px) {
+  .app-header { border-bottom: 1px solid rgba(229, 237, 247, .72); }
+  html.dark .app-header { border-color: rgba(32, 54, 80, .9); }
+  .journey-offer-card { scroll-margin-top: 5rem; }
+}
+@media (max-width: 639px) and (max-height: 740px) {
+  .home-canonical-banner { min-height: 8rem; padding: .7rem; }
+  .home-action-grid { grid-template-rows: repeat(2, 5.9rem); }
+  .home-trip-card { min-height: 4.25rem; padding-block: .6rem; }
+  .home-popular-routes { display: none; }
+}
+@media (max-width: 639px) and (max-height: 620px) {
+  .home-canonical-banner { min-height: 5.75rem; padding: .5rem; }
+  .home-canonical-banner h1 { font-size: 1rem; }
+  .home-canonical-banner p { margin-top: .1rem; font-size: 0.75rem; }
+  .home-action-grid { gap: .4rem; }
+  .home-action-grid > .home-action-card { min-height: 0; padding: .5rem; }
+  .home-action-card > span:first-of-type { width: 1.75rem; height: 1.75rem; }
+  .home-action-card > span:first-of-type svg { width: 1rem; height: 1rem; }
+  .home-action-card > span:last-child > span:first-child > span:first-child { font-size: .75rem; }
+  .home-action-card > span:last-child > span:first-child > span:last-child { display: none; }
+  .home-trip-card { min-height: 3.1rem; padding: .35rem .6rem; }
+  .home-trip-card > span:first-child { width: 2rem; height: 2rem; }
+}
+/* Desktop keeps the canonical composition in a wider reading column. */
+@media (min-width: 1024px) {
+  .home-hero--canonical { max-width: 800px; padding-inline: 24px; }
+  .home-canonical-banner { min-height: 11.75rem; }
+  .home-action-grid { grid-template-rows: repeat(2, 9rem); }
+  .home-popular-route { height: 5rem; }
+
+  /* Desktop side-by-side layout: map on the right, floating sheet on the left */
+  .route-map-screen > header {
+    inset-inline-start: 1.5rem;
+    inset-inline-end: auto;
+    width: 460px;
+    max-width: 460px;
+    padding-inline: 0;
+  }
+  .route-map-screen [data-testid="route-bottom-sheet"] {
+    inset-inline-start: 1.5rem;
+    inset-inline-end: auto;
+    top: calc(max(0.75rem, env(safe-area-inset-top)) + 7.5rem);
+    bottom: 1.5rem;
+    width: 460px;
+    max-width: 460px;
+    height: auto;
+    border-radius: 1.75rem;
+    box-shadow: 0 20px 60px rgba(18, 48, 86, 0.22);
+  }
+  .route-map-screen [data-testid="route-bottom-sheet"] .route-sheet-grabber {
+    display: none;
+  }
+}
+
+/* Driver puck on the navigation map (Apple-Maps-like arrow with a soft accuracy halo). */
+.marshgo-puck { position: relative; width: 44px; height: 44px; }
+.marshgo-puck__arrow { position: relative; width: 44px; height: 44px; filter: drop-shadow(0 4px 10px rgba(9, 35, 69, .4)); }
+.marshgo-puck__halo { position: absolute; inset: -16px; border-radius: 9999px; background: radial-gradient(circle, rgba(23, 137, 244, .25) 0%, rgba(23, 137, 244, 0) 70%); animation: marshgo-puck-pulse 2.2s cubic-bezier(0.2, 0, 0, 1) infinite; }
+@keyframes marshgo-puck-pulse { 0% { transform: scale(.5); opacity: 1; } 100% { transform: scale(1.35); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .marshgo-puck__halo { animation: none; } }
+
+/* Canonical MARSHGO navy theme and square Home composition. */
+html.dark body,
+html.dark .production-app {
+  background-color: var(--mg-canvas);
+  color: var(--mg-ink-primary);
+}
+html.dark .production-app {
+  background-image: radial-gradient(ellipse at 50% -12%, rgba(113, 199, 242, .08), transparent 32rem);
+}
+html.dark .app-header,
+html.dark .app-tabbar {
+  background-color: var(--mg-surface-glass);
+  border-color: var(--mg-border-subtle);
+}
+html.dark .home-banner-scrim {
+  background: linear-gradient(90deg, rgba(7, 21, 33, .97), rgba(7, 21, 33, .84) 58%, rgba(7, 21, 33, .16));
+}
+.home-banner-scrim { background: linear-gradient(90deg, rgba(255,255,255,.96), rgba(255,255,255,.86) 58%, rgba(255,255,255,.08)); }
+.home-marshpass-slot--multiple .home-marshpass-card { height: calc(100% - 3.25rem); }
+html.dark .app-header .bg-white { background-color: var(--mg-surface-primary); border-color: var(--mg-border-subtle); }
+html.dark .app-header-actions > button { border-color: var(--mg-border-subtle); background: var(--mg-surface-secondary); color: var(--mg-ink-primary); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--mg-ink-primary) 5%, transparent); }
+html.dark .app-header-actions > button:hover { border-color: var(--mg-border-medium); background: var(--mg-surface-elevated); }
+html.dark .current-city-selector-trigger:hover { border-color: var(--mg-border-medium); background: var(--mg-surface-elevated); }
+.home-canonical-banner,
+.home-marshpass-card { border-radius: var(--mg-radius-xl); }
+.production-app :is(article, .journey-search-card, .journey-offer-card) { border-radius: 18px; }
+
+@media (max-width: 639px) {
+  .app-header { padding-top: max(.5rem, env(safe-area-inset-top, 0px)); }
+  .home-marshpass-slot { height: clamp(8.75rem, 18svh, 9.5rem); min-height: 8.75rem; }
+  .home-canonical-banner { min-height: clamp(10rem, 20svh, 11.75rem); }
+  .home-banner { padding: .7rem .8rem; }
+  .home-hero--canonical > .home-action-grid {
+    grid-template-rows: auto auto;
+    grid-auto-rows: auto;
+    gap: .55rem;
+  }
+  .home-action-grid > .home-action-card {
+    height: auto;
+    min-height: 6.5rem;
+    aspect-ratio: 1.5 / 1;
+    padding: .75rem;
+  }
+  .home-action-card > span:first-of-type { width: 2.35rem; height: 2.35rem; }
+  .home-action-card__title { font-size: .875rem; }
+  .home-action-card__subtitle { font-size: .72rem; }
+}
+@media (max-width: 639px) and (max-height: 730px) {
+  .home-hero--canonical {
+    padding-top: .25rem;
+    padding-bottom: max(.5rem, env(safe-area-inset-bottom, 0px));
+    scroll-padding-bottom: max(.5rem, env(safe-area-inset-bottom, 0px));
+  }
+  .home-canonical-banner {
+    min-height: 0;
+    margin-bottom: .5rem;
+    padding: .7rem .8rem;
+  }
+  .home-canonical-banner h1 { font-size: 1rem; }
+  .home-banner-eyebrow,
+  .home-banner-description { display: none; }
+  .production-app.home-viewport-shell {
+    height: 100svh;
+    min-height: 100svh;
+    overflow: hidden;
+  }
+  .production-app.home-viewport-shell > .pt-1 {
+    min-height: 0;
+    overflow: hidden;
+  }
+}
+
+/* ============================================================
+   Route details: graphite navigation composition
+   ============================================================ */
+.route-header-back {
+  border: 1px solid var(--route-control-border);
+  background: var(--route-control-bg);
+  color: var(--route-ink);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, .22);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  transition: transform .16s var(--mg-ease-entrance), background-color .16s ease;
+}
+.route-header-back:active { transform: scale(.94); }
+.route-header-icon {
+  color: var(--route-brand-ink);
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, .38));
+  transition: transform .16s var(--mg-ease-entrance);
+}
+.route-header-icon:active { transform: scale(.92); }
+
+.route-address-summary {
+  border: 1px solid var(--route-control-border);
+  background: var(--route-floating);
+  color: var(--route-ink);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, .18);
+}
+.route-address-dot {
+  display: inline-block;
+  width: .5rem;
+  height: .5rem;
+  margin-right: .45rem;
+  border-radius: 999px;
+  vertical-align: .02em;
+}
+.route-address-dot--origin { background: #2F8CFF; box-shadow: 0 0 8px rgba(47, 140, 255, .55); }
+.route-address-dot--destination { background: #A855F7; box-shadow: 0 0 8px rgba(168, 85, 247, .55); }
+
+.route-map-control {
+  border: 1px solid var(--route-control-border);
+  background: var(--route-control-bg);
+  color: var(--route-ink);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, .24);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  transition: transform .16s var(--mg-ease-entrance), background-color .16s ease;
+}
+/* An unlayered rule outranks every Tailwind @layer, so the `bg-[var(--mg-action)]` the call
+   sites append for the pressed state never won — the chip measured the same
+   rgba(17, 25, 38, .9) whether 3D or satellite was on or off. The on-state is therefore owned
+   here, by the same rule that owns the off-state, and keyed on the state the control already
+   publishes to assistive technology. */
+.route-map-control[aria-pressed="true"] {
+  background: var(--route-control-active-bg);
+  border-color: transparent;
+  color: var(--route-control-active-ink);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, .24);
+}
+.route-map-control[aria-pressed="true"]:hover { background: var(--route-control-active-bg); }
+/* A control that cannot do its job has to look like it cannot do its job. */
+.route-map-control[aria-disabled="true"] {
+  color: var(--route-muted);
+  cursor: not-allowed;
+  opacity: .55;
+  box-shadow: none;
+}
+.route-map-control:active { transform: scale(.94); }
+
+/* Shared map controls also appear on screens outside the route-map theme scope. */
+.map-interaction-control {
+  border: 1px solid var(--mg-border-subtle);
+  background: color-mix(in srgb, var(--mg-surface-primary) 92%, transparent);
+  color: var(--mg-ink-primary);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  transition: transform .16s var(--mg-ease-entrance), background-color .16s ease;
+}
+.map-interaction-control[aria-pressed="true"] {
+  border-color: transparent;
+  background: var(--mg-action);
+  color: #fff;
+}
+.map-interaction-control[aria-expanded="true"] {
+  border-color: transparent;
+  background: var(--mg-action);
+  color: #fff;
+}
+.map-interaction-control:disabled,
+.map-interaction-control[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: .5;
+  box-shadow: none;
+}
+.map-interaction-control:active { transform: scale(.94); }
+
+.route-map-note {
+  border: 1px solid color-mix(in srgb, #F5B51B 35%, transparent);
+  background: color-mix(in srgb, #6B4B08 42%, transparent);
+  color: #FFE2A8;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.route-map-screen[data-theme="light"] .route-map-note {
+  background: color-mix(in srgb, #F5B51B 18%, rgba(255, 255, 255, .94));
+  color: #6B4600;
+}
+
+.route-map-scale {
+  position: absolute;
+  z-index: 9;
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+  color: var(--route-scale-ink);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .01em;
+  pointer-events: none;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .55);
+  transition: bottom var(--mg-dur-base) var(--mg-ease-entrance);
+}
+.route-map-scale i {
+  display: block;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .45);
+}
+
+.route-mode-chip {
+  border: 1px solid var(--route-control-border);
+  background: var(--route-floating);
+  color: var(--route-ink);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .26);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+.route-mode-chip__icon { color: #fff; }
+.route-mode-chip:active { transform: scale(.99); }
+
+/*
+ * Seven stages cannot share 358 px, so the ribbon is its own horizontal scroller: native
+ * overflow, no wrap, and the platform's own momentum — a hand-rolled drag would have to re-learn
+ * velocity, rubber-banding and interruptibility that the browser already does. Top padding keeps
+ * the pill's 44 px hit bleed inside the clip box; anything clipped there is not tappable.
+ */
+.mg-route-ribbon {
+  display: flex;
+  align-items: flex-start;
+  gap: .5rem;
+  flex-wrap: nowrap;
+  min-width: 0;
+  padding-block-start: 9px;
+  overflow-x: auto;
+  /* Kinetic scrolling on iOS Safari; a chain flick has to coast and stay interruptible. */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+.mg-route-ribbon__item {
+  display: flex;
+  /*
+   * Proportional widths used to be `1 1 0%`, which squeezed every stage into its share of the
+   * scrollport and cut «Тролейбус» into «Тролей…». In a scroller the row can carry the width
+   * instead: basis auto keeps each name whole, grow still spreads a short chain across the full
+   * row so the canonical ribbon reads as one bar, and the ceiling stops one long feed label from
+   * eating the whole scrollport. min-width is the floor under a 40-second walk.
+   */
+  flex: 1 0 auto;
+  width: max-content;
+  flex-direction: column;
+  align-items: stretch;
+  gap: .2rem;
+  min-width: 62px;
+  max-width: 11rem;
+}
+.mg-route-ribbon__pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 26px;
+  border-radius: 999px;
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .32), 0 2px 6px rgba(0, 0, 0, .14);
+  transition: transform .18s var(--mg-ease-entrance), box-shadow .18s ease, filter .18s ease;
+  touch-action: manipulation;
+}
+.mg-route-ribbon__pill.is-active {
+  box-shadow: 0 0 0 2.5px var(--route-ribbon-ring), 0 0 20px color-mix(in srgb, var(--mg-blue) 55%, transparent);
+  transform: scale(1.02);
+}
+.mg-route-ribbon__pill:active { transform: scale(.97); }
+/*
+ * The default focus ring sits 2 px outside the box, which the scroll clip cuts in half at either
+ * end of the row. An inset ring is always fully painted, and keyboard focus auto-scrolls the
+ * stage into view because this is a real scroller.
+ */
+.mg-route-ribbon__pill:focus-visible { outline: 2px solid var(--mg-blue); outline-offset: -2px; }
+/*
+ * The bar stays 26 px tall — that is the canonical ribbon — but a stage is a tap
+ * action and the ergonomic floor is 44 px. Extend the button's hit area over its
+ * own label and detail lines instead of inflating the bar and pushing the sheet
+ * content down; the extra 9 px above and below clear the floor exactly.
+ */
+.mg-route-ribbon__pill::before {
+  content: '';
+  position: absolute;
+  inset: -9px 0;
+  border-radius: 999px;
+}
+.mg-route-ribbon__label {
+  overflow: hidden;
+  color: var(--route-ink);
+  font-size: 12.5px;
+  font-weight: 800;
+  line-height: var(--mg-sheet-label-leading);
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mg-route-ribbon__detail {
+  overflow: hidden;
+  color: var(--route-muted);
+  font-size: 12px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  line-height: var(--mg-sheet-label-leading);
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Route details use one compact, swipeable row; active navigation keeps the full ribbon. */
+.mg-route-ribbon--compact {
+  box-sizing: border-box;
+  align-items: center;
+  height: var(--mg-sheet-ribbon-height);
+  min-height: var(--mg-sheet-ribbon-height);
+  padding-block: 2px;
+}
+.mg-route-ribbon--compact .mg-route-ribbon__item {
+  flex: 0 0 auto;
+  width: max-content;
+  min-width: 0;
+  max-width: 12rem;
+  flex-direction: row;
+  gap: 0;
+}
+.mg-route-ribbon--compact .mg-route-ribbon__pill {
+  position: relative;
+  width: max-content;
+  max-width: 12rem;
+  height: 44px;
+  min-height: 44px;
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: .45rem;
+  padding-inline: .55rem;
+  border-radius: 12px;
+}
+.mg-route-ribbon--compact .mg-route-ribbon__pill::before {
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.mg-route-ribbon--compact .mg-route-ribbon__copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+}
+.mg-route-ribbon--compact .mg-route-ribbon__label {
+  max-width: 7.5rem;
+  font-size: 11px;
+  line-height: 1.1;
+  text-align: left;
+}
+.mg-route-ribbon--compact .mg-route-ribbon__detail {
+  max-width: 7.5rem;
+  font-size: 10px;
+  line-height: 1.1;
+  text-align: left;
+}
+
+/* PEEK keeps the complete stage chain in a compact, native horizontal strip. */
+.route-peek-ribbon {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 0 3px;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+}
+.route-peek-ribbon__item {
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: calc(100vw - 5rem);
+  transition: opacity var(--mg-dur-base) var(--mg-ease-standard);
+}
+.route-peek-ribbon__item.is-muted { opacity: .48; }
+.route-peek-ribbon__stage {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 4px 8px;
+  border: 1px solid var(--route-border);
+  border-radius: 13px;
+  background: var(--route-card-alt);
+  color: var(--route-ink);
+  text-align: left;
+  scroll-snap-align: start;
+}
+.route-peek-ribbon__stage.is-active {
+  border-color: color-mix(in srgb, var(--mg-blue) 60%, var(--route-border));
+  background: var(--route-card);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--mg-blue) 28%, transparent);
+}
+.route-peek-ribbon__stage:focus-visible {
+  outline: 2px solid var(--mg-blue);
+  outline-offset: -2px;
+}
+.route-peek-ribbon__icon {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  place-items: center;
+  border-radius: 9px;
+  color: #fff;
+}
+.route-peek-ribbon__copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+}
+.route-peek-ribbon__label {
+  max-width: 7.5rem;
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.route-peek-ribbon__detail {
+  color: var(--route-muted);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.mg-route-cta {
+  min-height: var(--mg-sheet-cta-min-height);
+  border-radius: 16px;
+  /* Canonical action ramp: action blue fading into the graphite navy it sits on.
+     No second brand hue — the primary action must read as MARSHGO, not as a
+     promotional gradient, and white on every stop clears WCAG AA. */
+  background: linear-gradient(
+    135deg,
+    var(--mg-action) 0%,
+    color-mix(in srgb, var(--mg-action) 62%, var(--mg-navy)) 58%,
+    color-mix(in srgb, var(--mg-action) 34%, var(--mg-navy)) 100%
+  );
+  color: #fff;
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: -.01em;
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--mg-action) 34%, transparent), inset 0 1px 0 rgba(255, 255, 255, .22);
+  transition: transform .16s var(--mg-ease-entrance), filter .16s ease, box-shadow .16s ease;
+  touch-action: manipulation;
+}
+.route-sheet-peek-cta { min-height: 48px; }
+.route-sheet-endpoints {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 13px minmax(0, 1fr);
+  align-items: center;
+  gap: 5px;
+  padding: 0 12px var(--mg-sheet-endpoints-pad-bottom);
+  color: var(--route-ink);
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.25;
+}
+.route-sheet-endpoints__name,
+.mg-route-endpoints__name {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.route-sheet-endpoints__name--end,
+.mg-route-endpoints__name--end { text-align: right; }
+.route-sheet-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  padding: var(--mg-sheet-summary-pad-top) 12px var(--mg-sheet-summary-pad-bottom);
+}
+.route-sheet-summary__metrics {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: baseline;
+  gap: 5px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.route-sheet-summary__times {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 3px;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: -.025em;
+}
+.route-sheet-summary__detail {
+  flex: 0 0 auto;
+  color: var(--route-muted);
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.route-sheet-summary__transfers {
+  min-width: 0;
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.route-sheet-summary__transfer-short { display: none; }
+.route-sheet-summary__fare {
+  display: inline-flex;
+  min-width: 0;
+  flex: 0 0 auto;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 3px;
+  line-height: 1.15;
+}
+.route-sheet-summary__caption {
+  max-width: 4.5rem;
+  overflow: hidden;
+  color: var(--route-muted);
+  font-size: 10px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mg-route-endpoints {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 12px minmax(0, 1fr);
+  align-items: center;
+  gap: 4px;
+}
+@media (max-width: 360px) {
+  .route-sheet-summary { gap: 5px; padding-right: 10px; padding-left: 10px; }
+  .route-sheet-summary__metrics { gap: 4px; }
+  .route-sheet-summary__times { gap: 2px; font-size: 14px; }
+  .route-sheet-summary__detail { font-size: 9px; }
+  .route-sheet-summary__transfer-full { display: none; }
+  .route-sheet-summary__transfer-short { display: inline; }
+  .route-sheet-summary__caption { max-width: 3rem; }
+  .route-sheet-endpoints { padding-right: 10px; padding-left: 10px; }
+}
+.mg-route-cta:active { transform: scale(.985); filter: brightness(1.06); }
+.mg-route-cta:disabled { opacity: .5; box-shadow: none; }
+.mg-route-cta:focus-visible { outline: 3px solid color-mix(in srgb, var(--mg-blue) 68%, transparent); outline-offset: 3px; }
+
+.mg-route-book {
+  border: 1px solid color-mix(in srgb, var(--mg-action) 46%, transparent);
+  background: color-mix(in srgb, var(--mg-action) 12%, transparent);
+  color: var(--route-ink);
+  transition: background-color .16s ease, transform .16s var(--mg-ease-entrance);
+}
+.mg-route-book:active { transform: scale(.99); }
+
+/* FULL-state bridge back to the map: a sheet-aware pill that names the current
+   camera focus instead of leaving the passenger to guess what was fitted. */
+.route-show-on-map {
+  border: 1px solid var(--route-control-border);
+  background: var(--route-control-bg);
+  color: var(--route-ink);
+  box-shadow: var(--mg-label-shadow);
+  backdrop-filter: blur(12px);
+}
+
+/* ----- Map callouts ----- */
+.route-map-screen .mg-map-label {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: .45rem;
+  max-width: 216px;
+  padding: 5px 9px;
+  border: 1px solid var(--mg-label-border);
+  border-radius: 10px;
+  background: var(--mg-label-bg);
+  color: var(--mg-label-ink);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.15;
+  box-shadow: var(--mg-label-shadow);
+  pointer-events: none;
+  white-space: nowrap;
+  will-change: transform;
+}
+.route-map-screen .mg-map-label__title {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 850;
+  line-height: 1.15;
+}
+.route-map-screen .mg-map-label__title--strong { font-size: 12.5px; }
+.route-map-screen .mg-map-label__detail {
+  display: block;
+  margin-top: 1px;
+  color: var(--mg-label-muted);
+  font-size: 12px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+.route-map-screen .mg-map-label__body { display: flex; flex-direction: column; min-width: 0; }
+
+.route-map-screen .mg-map-label__glyph {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--mg-label-tone, #8E9CB3);
+  color: #fff;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--mg-label-tone, #8E9CB3) 60%, transparent);
+}
+
+.route-map-screen .mg-map-label--walk {
+  gap: .5rem;
+  padding: 5px 10px 5px 5px;
+  border-radius: 12px;
+  border-color: color-mix(in srgb, var(--mg-label-tone, #8E9CB3) 70%, transparent);
+  background: color-mix(in srgb, var(--mg-label-tone, #8E9CB3) 16%, var(--mg-label-bg));
+}
+.route-map-screen .mg-map-label--tone-green { --mg-label-tone: #2BD576; }
+.route-map-screen .mg-map-label--tone-blue { --mg-label-tone: #2F8CFF; }
+.route-map-screen .mg-map-label--tone-purple { --mg-label-tone: #A21CFF; }
+.route-map-screen .mg-map-label--tone-neutral { --mg-label-tone: #8E9CB3; }
+
+.route-map-screen .mg-map-label--boarding,
+.route-map-screen .mg-map-label--alighting {
+  flex-direction: column;
+  gap: .28rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  white-space: normal;
+}
+.route-map-screen .mg-map-label--boarding .mg-map-label__title,
+.route-map-screen .mg-map-label--alighting .mg-map-label__title {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: 5px 12px;
+  border: 1px solid color-mix(in srgb, #fff 30%, transparent);
+  border-radius: 9px;
+  background: var(--mg-label-tone);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 850;
+  box-shadow: 0 0 20px color-mix(in srgb, var(--mg-label-tone) 55%, transparent), 0 6px 16px rgba(0, 0, 0, .35);
+}
+.route-map-screen .mg-map-label--boarding .mg-map-label__title::before,
+.route-map-screen .mg-map-label--alighting .mg-map-label__title::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #fff;
+}
+.route-map-screen .mg-map-label__caption {
+  max-width: 190px;
+  color: var(--mg-label-ink);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+  text-shadow: var(--mg-label-caption-shadow);
+}
+
+.route-map-screen .mg-map-label--terminus {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .1rem;
+  padding: 5px 9px;
+  border-radius: 10px;
+}
+.route-map-screen .mg-map-label__kicker {
+  color: var(--mg-label-muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.route-map-screen .mg-map-label--vehicle,
+.route-map-screen .mg-map-label--route {
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.route-map-screen .mg-map-label__callout {
+  display: inline-block;
+  padding: 4px 9px;
+  border: 1px solid var(--mg-callout-border);
+  border-radius: 8px;
+  background: var(--mg-callout-bg);
+  color: var(--mg-callout-ink);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.2;
+  box-shadow: var(--mg-label-shadow);
+}
+.route-map-screen .mg-map-label__pin {
+  width: 8px;
+  height: 8px;
+  margin-top: -5px;
+  border-right: 1px solid var(--mg-callout-border);
+  border-bottom: 1px solid var(--mg-callout-border);
+  background: var(--mg-callout-bg);
+  transform: rotate(45deg);
+}
+.route-map-screen .mg-map-label__eta {
+  margin-top: .18rem;
+  padding: 2px 8px;
+  border-radius: 7px;
+  background: #7B1BE0;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 4px 12px rgba(123, 27, 224, .5);
+}
+
+/* Keep map attribution above the sheet instead of behind it. */
+@media (max-width: 1023px) {
+  .route-map-screen .maplibregl-ctrl-bottom-right {
+    bottom: calc(var(--route-map-inset, 0px) + 10px);
+  }
+}
+@media (min-width: 1024px) {
+  .route-map-screen [data-testid="route-segment-list"] { max-height: 46vh; }
+}
+/* Scroll surfaces belong to the navy system: a thin blue thumb on a transparent track
+   instead of the platform default. .no-scrollbar rows still opt out entirely. */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--mg-blue) 35%, transparent) transparent;
+}
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { border-radius: var(--mg-radius-pill); background: color-mix(in srgb, var(--mg-blue) 35%, transparent); }
+::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--mg-blue) 55%, transparent); }
+.route-map-screen [data-testid="route-segment-list"] { scrollbar-color: color-mix(in srgb, var(--mg-blue) 40%, transparent) transparent; }
+.route-map-screen [data-testid="route-segment-list"]::-webkit-scrollbar { width: 5px; }
+/* ----- Route details motion and selection cues ---------------------------
+   Everything here answers "what did my tap just do?" and disappears under
+   the global prefers-reduced-motion guard. */
+
+/* Save/share used to confirm only to screen readers; now the rider sees it. */
+.route-toast {
+  border: 1px solid var(--route-control-border);
+  background: var(--route-floating);
+  color: var(--route-ink);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .28);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  animation: mg-toast-in var(--mg-dur-base) var(--mg-ease-entrance) both;
+}
+@keyframes mg-toast-in {
+  from { opacity: 0; transform: translate3d(0, 10px, 0) scale(.96); }
+  to { opacity: 1; transform: none; }
+}
+
+/* The screen arrives in layers: header from the top edge, sheet from below. */
+.route-map-screen > header { animation: mg-slide-down var(--mg-dur-base) var(--mg-ease-entrance) both; }
+.route-map-screen > section[data-testid="route-bottom-sheet"] { animation: mg-sheet-in var(--mg-dur-slow) var(--mg-ease-entrance) both; }
+@keyframes mg-sheet-in { from { transform: translate3d(0, 26px, 0); } to { transform: none; } }
+.route-details-head { animation: mg-slide-down var(--mg-dur-base) var(--mg-ease-entrance) both; }
+
+/* A single nudge teaches that the handle drags; it never loops. */
+.route-sheet-grabber__handle { animation: mg-grabber-hint 1.1s var(--mg-ease-standard) .9s 2 both; }
+@keyframes mg-grabber-hint {
+  0%, 100% { transform: none; }
+  40% { transform: translateY(-3px) scaleX(1.12); }
+  70% { transform: translateY(1px) scaleX(1.06); }
+}
+
+/* A focused leg pings like radar so the change reads in peripheral vision
+   while the camera rotates; the ping is pure opacity/transform. */
+.mg-route-ribbon__pill { position: relative; }
+.mg-route-ribbon__pill.is-active::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border: 2px solid var(--route-ribbon-ring);
+  border-radius: 999px;
+  pointer-events: none;
+  animation: mg-ring-ping 2.4s var(--mg-ease-standard) infinite;
+}
+@keyframes mg-ring-ping {
+  0% { opacity: .75; transform: scale(.96); }
+  70%, 100% { opacity: 0; transform: scale(1.12); }
+}
+.mg-route-ribbon__item { transition: opacity var(--mg-dur-base) var(--mg-ease-standard); }
+.mg-route-ribbon__item.is-muted { opacity: .48; }
+
+/* The focused segment card keeps a slow halo; the rest recede via opacity. */
+.mg-route-segment { position: relative; }
+/* Dense list rhythm and card padding come from the sheet density tokens so the
+   whole details column tightens as one unit, not per-component literals. */
+.mg-route-segment-list { display: grid; gap: var(--mg-sheet-stack-gap); padding-block-start: 0; }
+.mg-route-segment__body { padding: var(--mg-sheet-card-pad-y) var(--mg-sheet-card-pad-x); }
+.mg-route-segment[data-active="true"]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--mg-blue) 50%, transparent);
+  pointer-events: none;
+  animation: mg-segment-halo 2.8s var(--mg-ease-standard) infinite;
+}
+@keyframes mg-segment-halo { 0%, 100% { opacity: .3; } 50% { opacity: .95; } }
+
+.route-stops-chevron { transition: transform var(--mg-dur-base) var(--mg-ease-entrance); }
+.route-stops-chevron.is-open { transform: rotate(180deg); }
+
+/* A stop list belongs to the segment card it was opened from, so it renders as
+   an inset panel fused to that card instead of a free-standing block in the
+   sheet. The tint comes from --route-hover, which is already theme-scoped, so
+   light, dark, and a selected card all keep the same "part of this card" read. */
+.mg-route-stops {
+  background: var(--route-hover);
+  animation: mg-stops-reveal var(--mg-dur-base) var(--mg-ease-entrance) both;
+}
+@keyframes mg-stops-reveal {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Reset control appears with a focused leg, so it announces itself once. */
+.route-map-control.is-reset { animation: mg-pop var(--mg-dur-slow) var(--mg-ease-entrance) both; }
+
+/* A slow sheen keeps the primary action the brightest thing on the screen
+   without animating layout or paint-heavy properties. */
+.mg-route-cta { position: relative; overflow: hidden; }
+.mg-route-cta:not(:disabled)::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 45%;
+  transform: skewX(-18deg);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .22), transparent);
+  pointer-events: none;
+  animation: mg-cta-sheen 4.4s var(--mg-ease-standard) infinite;
+}
+@keyframes mg-cta-sheen {
+  0%, 52% { transform: translateX(0) skewX(-18deg); opacity: 0; }
+  58% { opacity: 1; }
+  100% { transform: translateX(320%) skewX(-18deg); opacity: 0; }
+}
+
+/* The origin→destination arrow drifts forward now and then. */
+.route-address-summary > svg { animation: mg-arrow-nudge 3.4s var(--mg-ease-standard) infinite; }
+@keyframes mg-arrow-nudge {
+  0%, 86%, 100% { transform: none; }
+  92% { transform: translateX(3px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-map-scale,
+  .mg-route-ribbon__pill,
+  .mg-route-cta,
+  .app-tabbar-inner button[aria-current="page"] svg,
+  .route-header-back,
+  .route-header-icon,
+  .route-map-control {
+    transition: none !important;
+  }
+  .route-map-screen > header,
+  .route-map-screen > section[data-testid="route-bottom-sheet"],
+  .app-tabbar-inner button[aria-current="page"] svg,
+  .route-details-head,
+  .route-sheet-grabber__handle,
+  .route-toast,
+  .mg-route-ribbon__pill.is-active::after,
+  .mg-route-segment[data-active="true"]::after,
+  .mg-route-cta:not(:disabled)::after,
+  .search-submit:not(:disabled)::after,
+  .route-address-summary > svg,
+  .mg-route-segment,
+  .mg-route-stops,
+  .mg-stagger {
+    animation: none !important;
+    animation-delay: 0ms !important;
+  }
+}
+
+/* Typography floor: no text run renders below 12px (0.75rem) anywhere in the app */
+.production-app :is(.text-\[10px\], .text-\[10\.5px\], .text-\[11px\], .text-\[0\.72rem\], .text-\[0\.68rem\]),
+:is(.text-\[10px\], .text-\[10\.5px\], .text-\[11px\], .text-\[0\.72rem\], .text-\[0\.68rem\]) {
+  font-size: 0.75rem !important;
+  line-height: 1rem !important;
+}
+
+/* Shared app chrome: header actions and primary navigation use the same calm,
+   token-driven surfaces in light and navy themes. */
+.production-app .app-header-icon-button {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  border: 1px solid var(--mg-border-subtle);
+  background: var(--mg-surface-secondary);
+  color: var(--mg-ink-primary);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--mg-ink-primary) 5%, transparent);
+}
+.production-app .app-header-icon-button:hover {
+  border-color: var(--mg-border-medium);
+  background: var(--mg-surface-elevated);
+}
+.production-app .app-tabbar-inner button:not(.app-create-button) {
+  color: var(--mg-ink-secondary);
+  transition:
+    background-color var(--mg-dur-fast) var(--mg-ease-standard),
+    color var(--mg-dur-fast) var(--mg-ease-standard),
+    transform var(--mg-dur-fast) var(--mg-ease-standard);
+}
+.production-app .app-tabbar-inner button:not(.app-create-button)[aria-current="page"] {
+  background: var(--mg-blue-tint);
+  color: var(--mg-blue-ink);
+}
+.production-app .app-tabbar-inner button:not(.app-create-button)[aria-current="page"] svg {
+  color: var(--mg-blue-ink);
+}
+.production-app .app-tabbar-inner button:not(.app-create-button):active,
+.production-app .app-header-icon-button:active {
+  transform: scale(.96);
+}
+@media (hover: hover) and (pointer: fine) {
+  .production-app .app-tabbar-inner button:not(.app-create-button):hover {
+    background: color-mix(in srgb, var(--mg-blue) 9%, var(--mg-surface-card));
+    color: var(--mg-blue-ink);
+  }
+}
+
+/* Owner's home reference: floating glass navigation, ticket-shaped pass promotion,
+   tactile two-by-two actions, and image-led destination cards. */
+.production-app.home-viewport-shell > .app-header {
+  border-bottom-color: transparent;
+  background: transparent;
+  padding-bottom: .35rem;
+}
+.production-app.home-viewport-shell .app-header-brand-copy p { display: none; }
+.production-app.home-viewport-shell .app-header-brand { gap: .55rem; }
+.production-app.home-viewport-shell .current-city-selector-trigger {
+  border-color: var(--mg-border-medium);
+  background: var(--mg-surface-glass);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--mg-navy) 12%, transparent);
+}
+.production-app.home-viewport-shell .app-header-icon-button {
+  border-color: var(--mg-border-medium);
+  background: var(--mg-surface-glass);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--mg-ink-primary) 7%, transparent);
+}
+.home-marshpass-promo {
+  position: relative;
+  border-color: var(--mg-border-medium);
+  background:
+    radial-gradient(ellipse at 82% 38%, color-mix(in srgb, var(--mg-blue) 12%, transparent), transparent 42%),
+    linear-gradient(154deg, var(--mg-surface-secondary) 0%, var(--mg-surface-primary) 48%, color-mix(in srgb, var(--mg-action) 12%, var(--mg-surface-primary)) 100%);
+}
+.home-marshpass-promo::before {
+  background:
+    radial-gradient(ellipse at 79% -46%, transparent 43%, color-mix(in srgb, var(--mg-ink-primary) 5%, transparent) 44%, transparent 64%),
+    radial-gradient(ellipse at 100% 124%, color-mix(in srgb, var(--mg-blue) 10%, transparent), transparent 48%);
+}
+.home-marshpass-promo::after {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background:
+    radial-gradient(1.05rem 1.35rem at 0 49%, var(--mg-canvas) 97%, transparent 102%),
+    radial-gradient(1.05rem 1.35rem at 100% 49%, var(--mg-canvas) 97%, transparent 102%);
+  content: "";
+  pointer-events: none;
+}
+.home-marshpass-promo__route { z-index: 1; top: 48%; opacity: .75; }
+.home-marshpass-promo__eyebrow,
+.home-marshpass-promo__title,
+.home-marshpass-promo__description,
+.home-marshpass-promo__footer { z-index: 3; }
+.home-marshpass-promo__title { max-width: 70%; }
+.home-marshpass-promo__description { max-width: 70%; }
+.home-marshpass-promo__footer { border-color: var(--mg-border-medium); }
+.home-action-card { isolation: isolate; }
+.home-action-card::before {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 100% 8%, color-mix(in srgb, var(--mg-blue) 10%, transparent), transparent 48%),
+    linear-gradient(145deg, transparent 45%, color-mix(in srgb, var(--mg-blue) 4%, transparent));
+  content: "";
+  pointer-events: none;
+}
+.home-action-card__art { position: absolute; z-index: 1; pointer-events: none; }
+.home-action-card__art--route {
+  right: -5%; bottom: -2%; width: 75%; height: 90%; overflow: visible;
+  fill: none; stroke: color-mix(in srgb, var(--mg-blue) 58%, white); stroke-width: 1.25;
+  stroke-linecap: round; stroke-linejoin: round; opacity: .42;
+}
+.home-action-card__art--route path:first-child { stroke: color-mix(in srgb, var(--mg-blue) 24%, transparent); stroke-width: 7; }
+.home-action-card__art--route path:last-child { stroke-dasharray: 5 7; }
+.home-action-card__art--publish {
+  right: -9%; top: 8%; width: 70%; height: 112%; border: 1px solid color-mix(in srgb, var(--mg-blue) 13%, transparent);
+  border-radius: 48% 38% 0 55%; transform: rotate(-17deg); opacity: .9;
+  background: radial-gradient(ellipse at 65% 88%, transparent 45%, color-mix(in srgb, var(--mg-blue) 8%, transparent) 46%, transparent 68%);
+}
+.home-action-card__art--transport {
+  right: 0; bottom: 0; width: 70%; height: 100%; object-fit: cover;
+  object-position: 52% 100%; opacity: .72; mix-blend-mode: screen;
+  transform: scale(2.2); transform-origin: right bottom;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 31%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 31%);
+}
+.home-action-card__art--network {
+  right: 8%; top: 11%; width: 47%; height: 66%; overflow: visible;
+  fill: none; stroke: color-mix(in srgb, var(--mg-blue) 72%, white); stroke-width: 1.7;
+  stroke-linecap: round; stroke-linejoin: round; opacity: .78;
+}
+.home-action-card__art--network circle { fill: var(--mg-ink-primary); stroke: var(--mg-blue); stroke-width: 2.2; }
+.home-popular-route {
+  border-color: var(--mg-border-subtle);
+  box-shadow: var(--mg-card-shadow);
+}
+.home-popular-route img { object-position: center 56%; }
+.home-popular-route__label { text-shadow: 0 1px 8px color-mix(in srgb, var(--mg-navy) 76%, transparent); }
+.production-app > nav[data-testid="global-bottom-navigation"] {
+  inset-inline: .5rem;
+  bottom: max(.45rem, env(safe-area-inset-bottom, 0px));
+  width: min(calc(100% - 1rem), 36rem);
+  margin-inline: auto;
+  border: 1px solid var(--mg-border-medium);
+  border-radius: var(--mg-radius-sheet);
+  background: var(--mg-surface-glass);
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--mg-navy) 22%, transparent), inset 0 1px 0 color-mix(in srgb, var(--mg-ink-primary) 8%, transparent);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  backdrop-filter: blur(24px) saturate(150%);
+  z-index: var(--mg-z-nav-sheet);
+}
+.production-app .app-tabbar-inner button:not(.app-create-button)[aria-current="page"] {
+  box-shadow: inset 0 -2px 0 var(--mg-blue);
+}
+.production-app > nav[data-testid="global-bottom-navigation"] .app-tabbar-inner .app-create-button {
+  background: linear-gradient(145deg, var(--mg-blue), var(--mg-action));
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--mg-blue) 30%, transparent), inset 0 1px 0 color-mix(in srgb, white 38%, transparent);
+}
+@media (max-width: 639px) and (min-height: 741px) {
+  .home-action-grid { grid-template-rows: repeat(2, clamp(6.5rem, 12.5svh, 7.25rem)); }
+  .home-popular-routes { flex: 0 0 auto; }
+  .home-popular-routes__row { flex: 0 0 auto; height: clamp(7.75rem, 16svh, 8.6rem); }
+  .home-popular-route { height: 100%; min-height: 0; }
+}
+@media (max-width: 639px) and (max-height: 730px) {
+  .home-popular-route { min-height: 7rem; }
+  .production-app > nav[data-testid="global-bottom-navigation"] { bottom: max(.3rem, env(safe-area-inset-bottom, 0px)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-marshpass-promo__route path { animation: none; }
+}
