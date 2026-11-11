@@ -1,0 +1,61 @@
+name: Server CI
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:17-3.5
+        env:
+          POSTGRES_DB: marshgo_e2e
+          POSTGRES_USER: marshgo
+          POSTGRES_PASSWORD: local_only_change_me
+        ports: ['5434:5432']
+        options: >-
+          --health-cmd "pg_isready -U marshgo -d marshgo_e2e"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+      redis:
+        image: redis:7.4-alpine
+        ports: ['6380:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      API_TEST_DATABASE_URL: postgres://marshgo:local_only_change_me@127.0.0.1:5434/marshgo_e2e
+      REDIS_URL: redis://127.0.0.1:6380
+      SESSION_SECRET: test-only-marshgo-ci-session-secret-32chars
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.21.0
+          cache: npm
+      - run: npm ci
+      - run: npm audit --audit-level=high
+      - run: npm run lint:all
+      - run: npm run typecheck
+      - run: npm test
+      - run: DATABASE_URL="$API_TEST_DATABASE_URL" npm run db:migrate
+      - run: npm run test:integration
+      - name: Build production API image
+        run: docker build --tag marshgo-server:ci .
+      - name: Smoke-test API image with local PostGIS and Redis
+        env:
+          DATABASE_URL: ${{ env.API_TEST_DATABASE_URL }}
+          IMAGE_SMOKE_SESSION_SECRET: local-container-smoke-session-secret-32chars
+        run: |
+          docker run --detach --name marshgo-api-image-smoke --network host \
+            --env NODE_ENV=development --env API_HOST=0.0.0.0 --env API_PORT=3002 \
+            --env TRUST_PROXY_HOPS=0 --env AUTH_DEV_BYPASS=true --env AUTH_DEV_OTP=true \
+            --env SESSION_SECRET="$IMAGE_SMOKE_SESSION_SECRET" --env DATABASE_URL="$DATABASE_URL" \
+            --env REDIS_URL="$REDIS_URL" --env MOBILITY_HEALTH_DISABLED=true marshgo-server:ci
+          trap 'docker rm --force marshgo-api-image-smoke >/dev/null 2>&1 || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:3002/readyz >/dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:3002/readyz

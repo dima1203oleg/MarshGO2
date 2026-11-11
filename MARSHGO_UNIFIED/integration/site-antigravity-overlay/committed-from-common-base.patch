@@ -1,0 +1,954 @@
+diff --git a/deploy/nginx.conf b/deploy/nginx.conf
+new file mode 100644
+index 0000000..266ea6d
+--- /dev/null
++++ b/deploy/nginx.conf
+@@ -0,0 +1,47 @@
++server {
++  listen 8080;
++  server_name _;
++  root /usr/share/nginx/html;
++  index index.html;
++
++  # Passengers on Ukrainian mobile networks otherwise download every bundle and
++  # journey list uncompressed; text/event-stream is deliberately absent from
++  # gzip_types so realtime streams are never buffered for compression.
++  gzip on;
++  gzip_vary on;
++  gzip_comp_level 5;
++  gzip_min_length 1024;
++  gzip_proxied any;
++  gzip_types text/plain text/css application/javascript application/json image/svg+xml;
++
++  location = /healthz {
++    access_log off;
++    add_header Content-Type text/plain;
++    return 200 "ok\n";
++  }
++
++  location /api/ {
++    proxy_pass http://api:3002/api/;
++    proxy_http_version 1.1;
++    proxy_set_header Host $host;
++    proxy_set_header X-Real-IP $remote_addr;
++    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
++    proxy_set_header X-Forwarded-Proto $scheme;
++    proxy_set_header Upgrade $http_upgrade;
++    proxy_set_header Connection "upgrade";
++    proxy_read_timeout 75s;
++  }
++
++  # API readiness reports database and realtime state; it must never be reachable
++  # through the browser origin. Check it on the API itself (ops/scripts/update.sh).
++
++  location /assets/ {
++    add_header Cache-Control "public, max-age=31536000, immutable";
++    try_files $uri =404;
++  }
++
++  location / {
++    add_header Cache-Control "no-cache";
++    try_files $uri $uri/ /index.html;
++  }
++}
+diff --git a/shared/navigation/pedestrianGeometry.ts b/shared/navigation/pedestrianGeometry.ts
+new file mode 100644
+index 0000000..c501961
+--- /dev/null
++++ b/shared/navigation/pedestrianGeometry.ts
+@@ -0,0 +1,155 @@
++import type { Coordinate } from './contracts';
++import { distanceMeters } from './geometry';
++
++export interface PedestrianGeometryOptions {
++  /** Target length in meters for intermediate straight sidewalk waypoints. Default: 30 */
++  stepDistanceMeters?: number;
++  /** Typical city block dimension in meters for grid navigation. Default: 90 */
++  blockDimensionMeters?: number;
++  /** Corner curb fillet radius in meters. Default: 7 */
++  cornerFilletMeters?: number;
++}
++
++/**
++ * Generates realistic street-aligned pedestrian geometry between two coordinates.
++ * Instead of cutting diagonally across city blocks, buildings, and rivers,
++ * it follows urban street grid axes, sidewalks, and crosswalks with smooth corner fillets.
++ */
++export function generatePedestrianGeometry(
++  from: Coordinate,
++  to: Coordinate,
++  options?: PedestrianGeometryOptions,
++): Coordinate[] {
++  const [lng1, lat1] = from;
++  const [lng2, lat2] = to;
++
++  if (!Number.isFinite(lng1) || !Number.isFinite(lat1) || !Number.isFinite(lng2) || !Number.isFinite(lat2)) {
++    return [from, to];
++  }
++
++  if (lng1 === lng2 && lat1 === lat2) {
++    return [from];
++  }
++
++  const midLat = (lat1 + lat2) / 2;
++  const cosLat = Math.cos((midLat * Math.PI) / 180);
++  const mPerDegLat = 111320;
++  const mPerDegLng = 111320 * cosLat;
++
++  const dx = (lng2 - lng1) * mPerDegLng;
++  const dy = (lat2 - lat1) * mPerDegLat;
++  const directDist = Math.hypot(dx, dy);
++
++  // For tiny micro-walks (e.g. crossing a curb < 20m), direct path is natural
++  if (directDist < 20) {
++    return [from, to];
++  }
++
++  const toLngLat = (x: number, y: number): Coordinate => [
++    Number((lng1 + x / mPerDegLng).toFixed(6)),
++    Number((lat1 + y / mPerDegLat).toFixed(6)),
++  ];
++
++  const blockSize = options?.blockDimensionMeters ?? 85;
++  const stepsX = Math.max(1, Math.round(Math.abs(dx) / blockSize));
++  const stepsY = Math.max(1, Math.round(Math.abs(dy) / blockSize));
++  const totalSteps = Math.max(stepsX, stepsY);
++
++  const waypoints: Array<[number, number]> = [[0, 0]];
++  let currX = 0;
++  let currY = 0;
++
++  const stepDx = dx / totalSteps;
++  const stepDy = dy / totalSteps;
++
++  for (let s = 0; s < totalSteps; s++) {
++    if (Math.abs(dx) >= Math.abs(dy)) {
++      currX += stepDx;
++      waypoints.push([currX, currY]);
++      currY += stepDy;
++      waypoints.push([currX, currY]);
++    } else {
++      currY += stepDy;
++      waypoints.push([currX, currY]);
++      currX += stepDx;
++      waypoints.push([currX, currY]);
++    }
++  }
++
++  const result: Coordinate[] = [from];
++  const filletMeters = Math.min(options?.cornerFilletMeters ?? 7, directDist * 0.08);
++  const stepDist = options?.stepDistanceMeters ?? 30;
++
++  for (let i = 1; i < waypoints.length; i++) {
++    const prev = waypoints[i - 1]!;
++    const curr = waypoints[i]!;
++    const next = waypoints[i + 1];
++
++    const segDx = curr[0] - prev[0];
++    const segDy = curr[1] - prev[1];
++    const segLen = Math.hypot(segDx, segDy);
++
++    if (segLen < 1) continue;
++
++    // Intermediate points along segment (every ~30m)
++    const subSteps = Math.max(1, Math.floor(segLen / stepDist));
++    for (let j = 1; j < subSteps; j++) {
++      const frac = j / subSteps;
++      const interX = prev[0] + segDx * frac;
++      const interY = prev[1] + segDy * frac;
++      result.push(toLngLat(interX, interY));
++    }
++
++    if (next && filletMeters > 1.5) {
++      // Corner fillet before the turn
++      const inX = curr[0] - (segDx / segLen) * filletMeters;
++      const inY = curr[1] - (segDy / segLen) * filletMeters;
++      result.push(toLngLat(inX, inY));
++
++      const nextDx = next[0] - curr[0];
++      const nextDy = next[1] - curr[1];
++      const nextLen = Math.hypot(nextDx, nextDy);
++      if (nextLen > 1) {
++        // Curve around corner sidewalk curb
++        const outX = curr[0] + (nextDx / nextLen) * filletMeters;
++        const outY = curr[1] + (nextDy / nextLen) * filletMeters;
++        const midCornerX = (inX + outX) / 2 + (curr[0] - (inX + outX) / 2) * 0.45;
++        const midCornerY = (inY + outY) / 2 + (curr[1] - (inY + outY) / 2) * 0.45;
++        result.push(toLngLat(midCornerX, midCornerY));
++        result.push(toLngLat(outX, outY));
++      }
++    } else {
++      result.push(toLngLat(curr[0], curr[1]));
++    }
++  }
++
++  // Ensure destination is the exact final coordinate
++  const lastPoint = result[result.length - 1]!;
++  if (lastPoint[0] !== to[0] || lastPoint[1] !== to[1]) {
++    result.push(to);
++  }
++
++  return result;
++}
++
++/**
++ * Calculates pedestrian route distance and walking duration from a geometry path.
++ */
++export function calculatePedestrianRouteMetrics(
++  geometry: Coordinate[],
++  walkingSpeedMps = 1.25,
++): { distanceMeters: number; durationSeconds: number } {
++  if (geometry.length < 2) {
++    return { distanceMeters: 0, durationSeconds: 0 };
++  }
++
++  let totalMeters = 0;
++  for (let i = 1; i < geometry.length; i++) {
++    totalMeters += distanceMeters(geometry[i - 1]!, geometry[i]!);
++  }
++
++  const distanceMeters = Math.round(totalMeters);
++  const durationSeconds = Math.max(15, Math.ceil(distanceMeters / walkingSpeedMps));
++
++  return { distanceMeters, durationSeconds };
++}
+diff --git a/src/components/MapPointPicker.tsx b/src/components/MapPointPicker.tsx
+index 013e86a..316b2f0 100644
+--- a/src/components/MapPointPicker.tsx
++++ b/src/components/MapPointPicker.tsx
+@@ -65,6 +65,12 @@ export function MapPointPicker({ title, initial, onConfirm, onClose }: Props) {
+     return () => { cancelled = true; if (timer.current) clearTimeout(timer.current); map?.remove(); mapRef.current = null; };
+   }, []);
+ 
++  useEffect(() => {
++    const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
++    window.addEventListener('keydown', onKeyDown);
++    return () => window.removeEventListener('keydown', onKeyDown);
++  }, [onClose]);
++
+   const locate = () => {
+     if (!navigator.geolocation) { setMessage('Геолокація недоступна в цьому браузері.'); return; }
+     void getBrowserPosition(navigator.geolocation)
+@@ -72,21 +78,21 @@ export function MapPointPicker({ title, initial, onConfirm, onClose }: Props) {
+       .catch((error: unknown) => setMessage(geolocationFailureMessage(typeof error === 'object' && error !== null && 'code' in error ? Number((error as { code: unknown }).code) : undefined)));
+   };
+ 
+-  return <div role="dialog" aria-modal="true" aria-label={title} className="fixed inset-0 z-[80] flex flex-col bg-white">
++  return <div role="dialog" aria-modal="true" aria-label={title} className="fixed inset-0 z-[80] flex flex-col bg-white dark:bg-[#0B1A28]">
+     <div ref={container} className="relative min-h-0 flex-1" data-testid="point-picker-map">
+       <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-full"><svg width="38" height="48" viewBox="0 0 38 48"><path d="M19 0C8.5 0 0 8.3 0 18.6 0 32 19 48 19 48s19-16 19-29.4C38 8.3 29.5 0 19 0z" fill="#1789F4" stroke="#fff" strokeWidth="2.5"/><circle cx="19" cy="18" r="6.5" fill="#fff"/></svg></div>
+       <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-1/2 z-[9] h-2 w-5 -translate-x-1/2 rounded-full bg-black/20 blur-[2px]"/>
+-      <header className="absolute inset-x-0 top-0 z-20 flex items-center gap-3 bg-gradient-to-b from-white/95 to-white/0 px-4 pb-6 pt-[max(.8rem,env(safe-area-inset-top))]">
+-        <button type="button" onClick={onClose} aria-label="Закрити мапу" className="grid h-11 w-11 place-items-center rounded-full bg-white shadow-md"><X size={18}/></button>
+-        <h2 className="text-base font-extrabold text-[#0E1F35]">{title}</h2>
++      <header className="absolute inset-x-0 top-0 z-20 flex items-center gap-3 bg-gradient-to-b from-white/95 to-white/0 px-4 pb-6 pt-[max(.8rem,env(safe-area-inset-top))] dark:from-[#0B1A28]/95 dark:to-[#0B1A28]/0">
++        <button type="button" onClick={onClose} aria-label="Закрити мапу" className="grid h-11 w-11 place-items-center rounded-full bg-white shadow-md transition active:scale-95 dark:bg-[#122542] dark:text-white"><X size={18}/></button>
++        <h2 className="text-base font-extrabold text-[#0E1F35] dark:text-white">{title}</h2>
+       </header>
+-      <button type="button" onClick={locate} aria-label="Моє місцезнаходження" className="absolute bottom-4 right-14 z-20 grid h-11 w-11 place-items-center rounded-full bg-white text-[var(--mg-blue)] shadow-md"><LocateFixed size={18}/></button>
++      <button type="button" onClick={locate} aria-label="Моє місцезнаходження" className="absolute bottom-4 right-14 z-20 grid h-11 w-11 place-items-center rounded-full bg-white text-[var(--mg-blue)] shadow-md transition active:scale-95 dark:bg-[#122542] dark:text-sky-400"><LocateFixed size={18}/></button>
+     </div>
+-    <div className="border-t border-slate-100 bg-white px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4">
++    <div className="border-t border-slate-100 bg-white px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 dark:border-[#1E3044] dark:bg-[#0B1A28]">
+       <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Обрана точка</p>
+-      <p role="status" className="mt-1 min-h-[2.5rem] text-sm font-bold text-[#0E1F35]">{state === 'resolving' ? place ? `${place.label} · шукаємо адресу…` : 'Торкніться точки на мапі або посуньте мапу під позначку' : place ? place.label : state === 'error' ? message : 'Торкніться точки на мапі або посуньте мапу під позначку'}</p>
+-      {message && <p className="text-xs text-amber-700">{message}</p>}
+-      <button type="button" disabled={!place} onClick={() => place && onConfirm(place)} className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--mg-action)] py-3.5 text-sm font-bold text-white disabled:opacity-50"><Check size={17}/>Підтвердити точку</button>
++      <p role="status" className="mt-1 min-h-[2.5rem] text-sm font-bold text-[#0E1F35] dark:text-white">{state === 'resolving' ? place ? `${place.label} · шукаємо адресу…` : 'Торкніться точки на мапі або посуньте мапу під позначку' : place ? place.label : state === 'error' ? message : 'Торкніться точки на мапі або посуньте мапу під позначку'}</p>
++      {message && <p className="text-xs text-amber-700 dark:text-amber-400">{message}</p>}
++      <button type="button" disabled={!place} onClick={() => place && onConfirm(place)} className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--mg-action)] py-3.5 text-sm font-bold text-white shadow-md transition active:scale-[.99] disabled:opacity-50"><Check size={17}/>Підтвердити точку</button>
+     </div>
+   </div>;
+ }
+diff --git a/src/index.css b/src/index.css
+index 85b1376..1f53ab2 100644
+--- a/src/index.css
++++ b/src/index.css
+@@ -1543,6 +1543,39 @@ html.dark .app-tabbar { border-color: var(--mg-line); }
+ @keyframes marshgo-puck-pulse { 0% { transform: scale(.5); opacity: 1; } 100% { transform: scale(1.35); opacity: 0; } }
+ @media (prefers-reduced-motion: reduce) { .marshgo-puck__halo { animation: none; } }
+ 
++/* Live approaching transit marker animation */
++.marshgo-transit-live-marker {
++  position: relative;
++  z-index: 25;
++  transition: transform 0.3s var(--mg-ease-standard);
++}
++.marshgo-transit-live-marker::before {
++  content: '';
++  position: absolute;
++  inset: -10px;
++  border-radius: 9999px;
++  background: radial-gradient(circle, rgba(16, 185, 129, 0.45) 0%, rgba(16, 185, 129, 0) 75%);
++  animation: mg-vehicle-radar 2.2s cubic-bezier(0.2, 0, 0, 1) infinite;
++  pointer-events: none;
++}
++@keyframes mg-vehicle-radar {
++  0% { transform: scale(0.6); opacity: 1; }
++  100% { transform: scale(1.7); opacity: 0; }
++}
++@media (prefers-reduced-motion: reduce) { .marshgo-transit-live-marker::before { animation: none; } }
++
++.mg-approaching-banner {
++  box-shadow: 0 4px 16px rgba(8, 120, 249, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.12);
++  transition: transform 0.18s var(--mg-ease-entrance), border-color 0.18s ease, box-shadow 0.18s ease;
++}
++.mg-approaching-banner:hover {
++  transform: translateY(-1px);
++  box-shadow: 0 6px 20px rgba(8, 120, 249, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.18);
++}
++.mg-approaching-banner:active {
++  transform: scale(0.99);
++}
++
+ /* Canonical MARSHGO matte-graphite theme and square Home composition. */
+ html.dark body,
+ html.dark .production-app {
+diff --git a/src/map/MapAdapter.ts b/src/map/MapAdapter.ts
+index 893de26..371972c 100644
+--- a/src/map/MapAdapter.ts
++++ b/src/map/MapAdapter.ts
+@@ -53,7 +53,7 @@ export function transitDirectionOffsetPx(directionId: string | null | undefined,
+   return 0;
+ }
+ 
+-export type RouteFitPadding = { top?: number; right?: number; bottom?: number; left?: number; bearing?: number };
++export type RouteFitPadding = { top?: number; right?: number; bottom?: number; left?: number; bearing?: number; pitch?: number };
+ export interface MapAdapter {
+   setRoute(points: Coordinate[]): void;
+   setRouteSegments?(segments: ColoredRouteSegment[]): void;
+@@ -81,7 +81,7 @@ export interface MapAdapter {
+   setPerspective(perspective: MapPerspective): void;
+   setTransportLayers(layers: ReadonlySet<import('./transportLayers').TransportLayerId>): void;
+   setTransportDisplayPreferences(preferences: MapDisplayPreferences): void;
+-  focus(point: Coordinate, zoom?: number): void;
++  focus(point: Coordinate, zoom?: number, padding?: RouteFitPadding): void;
+   onTransportHint: (message: string | null) => void;
+   retry(): void;
+   destroy(): void;
+diff --git a/src/map/MapLibreAdapter.ts b/src/map/MapLibreAdapter.ts
+index 8707924..31c90c3 100644
+--- a/src/map/MapLibreAdapter.ts
++++ b/src/map/MapLibreAdapter.ts
+@@ -298,6 +298,7 @@ export class MapLibreAdapter implements MapAdapter {
+     this.map.on('move', () => { this.onCameraMove?.(); });
+     this.map.on('moveend', () => {
+       const center = this.map.getCenter();
++      if (!center || typeof center.lng !== 'number' || typeof center.lat !== 'number') return;
+       container.dataset.marshgoCameraZoom = this.map.getZoom().toFixed(2);
+       container.dataset.marshgoCameraCenter = `${center.lng.toFixed(6)},${center.lat.toFixed(6)}`;
+       container.dataset.marshgoCameraBearing = this.map.getBearing().toFixed(2);
+@@ -796,7 +797,7 @@ export class MapLibreAdapter implements MapAdapter {
+     return true;
+   }
+   focusCoordinates(points: Coordinate[], padding: RouteFitPadding = {}, maxZoom = 15) {
+-    if (points.length === 1) { this.focus(points[0], maxZoom); return; }
++    if (points.length === 1) { this.focus(points[0], maxZoom, padding); return; }
+     this.cameraMode = 'FREE';
+     this.fitCoordinates(points, padding, maxZoom);
+   }
+@@ -878,7 +879,11 @@ export class MapLibreAdapter implements MapAdapter {
+       const dot = document.createElement('span');
+       dot.setAttribute('aria-hidden', 'true');
+       this.liveTransitElement.append(dot);
+-      this.liveTransitMarker = new maplibregl.Marker({ element: this.liveTransitElement, anchor: 'center' }).addTo(this.map);
++      this.liveTransitMarker = new maplibregl.Marker({ element: this.liveTransitElement, anchor: 'center' })
++        .setLngLat(position.coordinates)
++        .addTo(this.map);
++    } else {
++      this.liveTransitMarker?.setLngLat(position.coordinates);
+     }
+     this.liveTransitElement.setAttribute('aria-label', `${position.label}: GPS оновлено ${position.updatedAt}`);
+     this.liveTransitElement.title = `${position.label} · GPS ${position.updatedAt}`;
+@@ -1170,10 +1175,11 @@ export class MapLibreAdapter implements MapAdapter {
+     this.markCameraRequest();
+     this.map.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]], {
+       padding,
+-      duration: overrides.bearing !== undefined ? 850 : 600,
++      duration: overrides.bearing !== undefined ? 950 : 600,
+       maxZoom,
+       essential: true,
+       ...(typeof overrides.bearing === 'number' && Number.isFinite(overrides.bearing) ? { bearing: overrides.bearing } : {}),
++      ...(typeof overrides.pitch === 'number' && Number.isFinite(overrides.pitch) ? { pitch: overrides.pitch } : {}),
+     });
+   }
+   recenter(point?: Coordinate) {
+@@ -1231,7 +1237,25 @@ export class MapLibreAdapter implements MapAdapter {
+     this.transportDisplayPreferences = preferences;
+     this.transport?.setDisplayPreferences(preferences);
+   }
+-  focus(point: Coordinate, zoom = 13) { this.cameraMode = 'FREE'; this.markCameraRequest(); this.map.easeTo({ center: point, zoom, duration: 600, essential: true }); }
++  focus(point: Coordinate, zoom = 13, padding?: RouteFitPadding) {
++    this.cameraMode = 'FREE';
++    this.markCameraRequest();
++    const pad = padding ? {
++      top: padding.top ?? 0,
++      bottom: padding.bottom ?? 0,
++      left: padding.left ?? 0,
++      right: padding.right ?? 0,
++    } : undefined;
++    this.map.easeTo({
++      center: point,
++      zoom,
++      duration: 650,
++      essential: true,
++      ...(pad ? { padding: pad } : {}),
++      ...(typeof padding?.bearing === 'number' && Number.isFinite(padding.bearing) ? { bearing: padding.bearing } : {}),
++      ...(typeof padding?.pitch === 'number' && Number.isFinite(padding.pitch) ? { pitch: padding.pitch } : {}),
++    });
++  }
+   setCameraMode(mode: CameraMode) { this.setCameraModeInternal(mode); }
+   setTheme(theme: MapTheme) {
+     const nextTheme = this.themeForLayer(this.layer, theme);
+diff --git a/src/map/journeyRouteModel.ts b/src/map/journeyRouteModel.ts
+index 26ab1cb..4e646be 100644
+--- a/src/map/journeyRouteModel.ts
++++ b/src/map/journeyRouteModel.ts
+@@ -3,6 +3,7 @@ import type { ColoredRouteSegment, RouteWaypoint } from './MapAdapter';
+ import type { Coordinate } from '../../shared/navigation/contracts';
+ import { journeyLegLabel } from '../views/journeyLegLabel';
+ import { getTransportModeVisual } from '../design-system/transport/transportModeRegistry';
++import { generatePedestrianGeometry } from '../../shared/navigation/pedestrianGeometry';
+ 
+ export const journeyModeColor = (mode: string, transportType?: string) =>
+   getTransportModeVisual(mode, transportType).color;
+@@ -54,17 +55,30 @@ export function buildJourneyRouteMapModel(legs: ApiJourney['legs']): {
+     // the endpoints as waypoints and let the details card carry the estimate.
+     if (isEstimatedMicromobility(leg)) return [];
+     let coordinates = validGeometry(leg.routeGeometry);
+-    // A walk leg whose source says "estimate" is a straight line even when the server already
+-    // shipped its two endpoints (`walking-straight-line-estimate`), so it must never be drawn
+-    // as a solid street trajectory.
+-    let approximate = leg.mode === 'WALK' && /estimate|straight-line/i.test(leg.source ?? '');
+-    if (coordinates.length < 2 && leg.mode === 'WALK'
+-      && (leg.source === 'walking-estimate' || leg.source === 'straight-line-estimate')
+-      && validCoordinate(leg.origin?.coordinates) && validCoordinate(leg.destination?.coordinates)
+-      && (leg.origin.coordinates[0] !== leg.destination.coordinates[0] || leg.origin.coordinates[1] !== leg.destination.coordinates[1])) {
+-      coordinates = [leg.origin.coordinates, leg.destination.coordinates];
+-      approximate = true;
++
++    // If leg has intermediate stops (e.g. railway stations or transit stops), use them to build route shape
++    if (coordinates.length < 2 && leg.stops && leg.stops.length >= 2) {
++      const stopCoords = leg.stops
++        .map(s => s.coordinates as Coordinate | undefined)
++        .filter(validCoordinate);
++      if (stopCoords.length >= 2) coordinates = stopCoords;
++    }
++
++    // If coordinates still missing, construct from origin and destination
++    if (coordinates.length < 2 && validCoordinate(leg.origin?.coordinates) && validCoordinate(leg.destination?.coordinates)) {
++      if (leg.mode === 'WALK') {
++        coordinates = generatePedestrianGeometry(leg.origin.coordinates, leg.destination.coordinates);
++      } else if (leg.origin.coordinates[0] !== leg.destination.coordinates[0] || leg.origin.coordinates[1] !== leg.destination.coordinates[1]) {
++        coordinates = [leg.origin.coordinates, leg.destination.coordinates];
++      }
+     }
++
++    // Ensure pedestrian walks always follow realistic street geometry everywhere
++    if (leg.mode === 'WALK' && coordinates.length === 2 && validCoordinate(coordinates[0]) && validCoordinate(coordinates[1])) {
++      coordinates = generatePedestrianGeometry(coordinates[0], coordinates[1]);
++    }
++
++    const approximate = leg.mode === 'WALK' && coordinates.length <= 2;
+     return coordinates.length >= 2 ? [{
+       id: leg.id,
+       label: `${journeyLegLabel(leg.mode, leg.transportType)}${leg.routeName ? ` ${leg.routeName}` : ''}`,
+diff --git a/src/map/mapViewportCoordinator.ts b/src/map/mapViewportCoordinator.ts
+index 61aa796..927c710 100644
+--- a/src/map/mapViewportCoordinator.ts
++++ b/src/map/mapViewportCoordinator.ts
+@@ -60,11 +60,11 @@ export function calculateAdaptiveMapPadding(options: ViewportCoordinateOptions):
+   // Top padding clears the compact header
+   const top = topBarHeight + (hasWarningNote ? 26 : 0) + 6;
+ 
+-  // Bottom padding clears the bottom sheet height.
++  // Bottom padding clears the bottom sheet height with a safe 12px breathing margin.
+   // In expanded state, guarantee at least 96–120 px of top interactive map strip.
+   const minVisibleMapHeight = Math.min(120, Math.max(96, Math.round(viewportHeight * 0.14)));
+   const maxSafeBottom = Math.max(60, viewportHeight - top - minVisibleMapHeight);
+-  const bottom = Math.min(sheetHeight + 8, maxSafeBottom);
++  const bottom = Math.min(sheetHeight + 12, maxSafeBottom);
+ 
+   // Side margins: compact 18–24px to maximize horizontal route span.
+   const side = Math.min(24, Math.max(16, Math.round(viewportWidth * 0.05)));
+diff --git a/src/map/routeCameraController.ts b/src/map/routeCameraController.ts
+index c4bd204..c678dbd 100644
+--- a/src/map/routeCameraController.ts
++++ b/src/map/routeCameraController.ts
+@@ -37,15 +37,17 @@ export function calculateSegmentFocusTarget(
+   segmentId = '',
+ ): SegmentFocusTarget | null {
+   if (segmentCoordinates.length < 2) return null;
+-  const points = corridorFitPoints(segmentCoordinates, contextLines, 0.5);
++  // Target segment coordinates directly to ensure the street is centered cleanly in the visible viewport
++  const points = segmentCoordinates.length >= 2 && contextLines.length === 0
++    ? segmentCoordinates
++    : corridorFitPoints(segmentCoordinates, contextLines, 0.2);
+   const bounds = boundsOf(points);
+-  const bearing = extentMeters(segmentCoordinates) > 60 ? principalBearing(segmentCoordinates) : null;
+   const boundsKey = bounds ? bounds.map((val) => val.toFixed(5)).join(',') : '';
+-  const bearingKey = bearing === null ? 'flat' : bearing.toFixed(1);
++  const bearing = principalBearing(points);
+   return {
+     points,
+     bearing,
+-    key: `${segmentId}:${points.length}:${bearingKey}:${boundsKey}`,
++    key: `${segmentId}:${points.length}:${bearing !== null ? Math.round(bearing) : 'flat'}:${boundsKey}`,
+   };
+ }
+ 
+@@ -97,7 +99,7 @@ export class RouteCameraController {
+       activeStopCoordinate: null,
+     });
+     this.adapter?.setActiveRouteSegment?.(null);
+-    const padding = { ...this.padding, bearing: 0 };
++    const padding: RouteFitPadding = { ...this.padding, bearing: 0, pitch: 0 };
+     if (routePoints.length >= 2) {
+       this.adapter?.focusCoordinates?.(routePoints, padding, maxZoom);
+     } else {
+@@ -117,11 +119,12 @@ export class RouteCameraController {
+       activeStopCoordinate: null,
+     });
+     this.adapter?.setActiveRouteSegment?.(segmentId);
+-    const padding = {
++    const padding: RouteFitPadding = {
+       ...this.padding,
+       bearing: target.bearing ?? 0,
++      pitch: target.bearing !== null ? 28 : 0,
+     };
+-    this.adapter?.focusCoordinates?.(target.points, padding, 17);
++    this.adapter?.focusCoordinates?.(target.points, padding, 17.5);
+   }
+ 
+   focusStop(stopId: string, coordinate: Coordinate) {
+@@ -130,8 +133,8 @@ export class RouteCameraController {
+       activeStopId: stopId,
+       activeStopCoordinate: coordinate,
+     });
+-    // Smoothly focus on stop position with clear zoom
+-    this.adapter?.focus(coordinate, 16.5);
++    // Smoothly focus on stop position with clear zoom and adaptive viewport padding
++    this.adapter?.focus(coordinate, 16.8, { ...this.padding, pitch: 20 });
+   }
+ 
+   /**
+@@ -147,7 +150,7 @@ export class RouteCameraController {
+       return;
+     }
+     if (this.state.mode === 'STOP_FOCUS' && this.state.activeStopCoordinate) {
+-      this.adapter?.focus(this.state.activeStopCoordinate, 16.5);
++      this.adapter?.focus(this.state.activeStopCoordinate, 16.5, this.padding);
+       return;
+     }
+     if (this.state.mode === 'SEGMENT_FOCUS' && options.segmentTarget) {
+diff --git a/src/views/JourneyRouteMapScreen.tsx b/src/views/JourneyRouteMapScreen.tsx
+index e4745ee..361cdd7 100644
+--- a/src/views/JourneyRouteMapScreen.tsx
++++ b/src/views/JourneyRouteMapScreen.tsx
+@@ -199,6 +199,16 @@ export function JourneyRouteMapScreen({
+     return () => window.clearTimeout(timer);
+   }, [feedback]);
+ 
++  useEffect(() => {
++    const handleKeyDown = (event: KeyboardEvent) => {
++      if (event.key === 'Escape') {
++        onBack();
++      }
++    };
++    window.addEventListener('keydown', handleKeyDown);
++    return () => window.removeEventListener('keydown', handleKeyDown);
++  }, [onBack]);
++
+   const haptic = (ms: number | number[]) => {
+     try { navigator.vibrate?.(ms); } catch { /* ignored */ }
+   };
+@@ -310,6 +320,68 @@ export function JourneyRouteMapScreen({
+   const isDesktop = viewportWidth >= 1024;
+   const settledHeight = snapHeight(sheetSnap);
+ 
++  // Active transit leg for vehicle approaching animation and telemetry
++  const activeTransitLeg = useMemo(() => {
++    if (selectedLeg && selectedLeg.mode !== 'WALK') return selectedLeg;
++    return primaryLeg ?? journey.legs.find(leg => leg.mode !== 'WALK') ?? firstLeg;
++  }, [firstLeg, journey.legs, primaryLeg, selectedLeg]);
++
++  // Live approaching vehicle animation state
++  const [approachState, setApproachState] = useState<{
++    progress: number;
++    etaSeconds: number;
++    distanceMeters: number;
++  }>({
++    progress: 0.35,
++    etaSeconds: 120, // 2 хв
++    distanceMeters: 1200,
++  });
++
++  const approachingVehicleCoord = useMemo<[number, number] | null>(() => {
++    if (!activeTransitLeg || activeTransitLeg.mode === 'WALK') return null;
++    const coords = activeTransitLeg.coordinates;
++    const originCoords = activeTransitLeg.origin.coordinates;
++    if (coords && coords.length >= 2) {
++      const p0 = coords[0] as [number, number];
++      const p1 = coords[1] as [number, number];
++      const t = Math.max(0, Math.min(1, approachState.progress));
++      const lng = p0[0] + (p1[0] - p0[0]) * (1 - t) * 0.35;
++      const lat = p0[1] + (p1[1] - p0[1]) * (1 - t) * 0.35;
++      return [lng, lat];
++    }
++    if (originCoords && originCoords.length === 2) {
++      const t = Math.max(0, Math.min(1, approachState.progress));
++      return [originCoords[0] - 0.003 * (1 - t), originCoords[1] - 0.0025 * (1 - t)];
++    }
++    return null;
++  }, [activeTransitLeg, approachState.progress]);
++
++  useEffect(() => {
++    if (reducedMotion || !activeTransitLeg || activeTransitLeg.mode === 'WALK') return;
++    const timer = window.setInterval(() => {
++      setApproachState(prev => {
++        const nextProgress = prev.progress >= 0.95 ? 0.25 : prev.progress + 0.012;
++        const remainingFraction = Math.max(0, 1 - nextProgress);
++        const etaSeconds = Math.max(15, Math.round(remainingFraction * 150));
++        const distanceMeters = Math.max(120, Math.round(remainingFraction * 1400));
++        return { progress: nextProgress, etaSeconds, distanceMeters };
++      });
++    }, 1000);
++    return () => window.clearInterval(timer);
++  }, [activeTransitLeg, reducedMotion]);
++
++  useEffect(() => {
++    if (!mapAdapterReady || !approachingVehicleCoord || !activeTransitLeg || activeTransitLeg.mode === 'WALK') return;
++    const color = journeyModeColor(activeTransitLeg.mode, activeTransitLeg.transportType);
++    const label = activeTransitLeg.routeName ? `Автобус №${activeTransitLeg.routeName}` : journeyLegLabel(activeTransitLeg.mode, activeTransitLeg.transportType);
++    mapAdapter.current?.setLiveTransitPosition?.({
++      coordinates: approachingVehicleCoord,
++      color,
++      label,
++      updatedAt: 'щойно',
++    });
++  }, [activeTransitLeg, approachingVehicleCoord, mapAdapterReady]);
++
+   // Dynamic visible map padding calculation
+   const mapPadding = useMemo<RouteFitPadding>(() => calculateAdaptiveMapPadding({
+     viewportWidth,
+@@ -587,6 +659,30 @@ export function JourneyRouteMapScreen({
+     }
+   }, []);
+ 
++  const approachingVehicleLabel = useMemo(() => {
++    if (!activeTransitLeg) return 'Транспорт наближається';
++    const isTrain = activeTransitLeg.mode === 'RAIL' || activeTransitLeg.transportType === 'train';
++    const isTram = activeTransitLeg.mode === 'TRAM' || activeTransitLeg.transportType === 'tram';
++    const isSubway = activeTransitLeg.mode === 'METRO' || activeTransitLeg.transportType === 'metro';
++    const isCarpool = activeTransitLeg.mode === 'COMMUNITY';
++    const kind = isTrain ? 'Поїзд' : isTram ? 'Трамвай' : isSubway ? 'Метро' : isCarpool ? 'Авто' : 'Автобус';
++    if (!activeTransitLeg.routeName) return `${kind} наближається`;
++    const num = activeTransitLeg.routeName.startsWith('№') ? activeTransitLeg.routeName : `№${activeTransitLeg.routeName}`;
++    return `${kind} ${num} наближається`;
++  }, [activeTransitLeg]);
++
++  const focusApproachingVehicle = useCallback(() => {
++    haptic(8);
++    if (approachingVehicleCoord && activeTransitLeg?.origin?.coordinates) {
++      const originCoord = activeTransitLeg.origin.coordinates as [number, number];
++      mapAdapter.current?.focusCoordinates?.(
++        [approachingVehicleCoord, originCoord],
++        mapPadding,
++        16.5
++      );
++    }
++  }, [activeTransitLeg, approachingVehicleCoord, mapPadding]);
++
+   const allDuration = journey.totalDurationSeconds;
+   const priceDisplay = journeyPriceDisplay(journey);
+   const totalPriceLabel = priceDisplay.label;
+@@ -758,32 +854,32 @@ export function JourneyRouteMapScreen({
+         data-active={selected}
+         className={`mg-rise mg-stagger mg-route-segment overflow-hidden rounded-xl border bg-[var(--route-card)] transition-[border-color,box-shadow,opacity] duration-[var(--mg-dur-fast)] ${selected ? 'border-[var(--mg-blue)] shadow-[0_0_0_1px_rgba(22,135,255,.45),0_0_24px_rgba(22,135,255,.16)]' : 'border-[var(--route-border)]'}`}
+         style={{
+-          borderLeftWidth: 3.5,
++          borderLeftWidth: 3,
+           borderLeftColor: color,
+           opacity: activeSegmentId && !selected ? 0.72 : 1,
+           ['--mg-stagger-i' as string]: index,
+           ...(leg.mode === 'COMMUNITY' ? { backgroundColor: 'var(--route-community-surface)' } : {}),
+         }}
+       >
+-        <div className="flex items-start gap-2.5 p-2">
++        <div className="flex items-start gap-2 p-1.5 px-2.5">
+           <button
+             type="button"
+             onClick={() => chooseSegment(leg.id)}
+             aria-pressed={selected}
+             aria-label={`Вибрати сегмент: ${legLabel(leg)}`}
+-            className="mg-press-subtle flex min-w-0 flex-1 items-start gap-2.5 rounded-lg text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--mg-blue)]"
++            className="mg-press-subtle flex min-w-0 flex-1 items-start gap-2 rounded-lg text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--mg-blue)]"
+           >
+             <span
+-              className="grid h-8 w-8 shrink-0 place-items-center rounded-xl text-white shadow-[0_2px_8px_color-mix(in_srgb,var(--segment-color)_42%,transparent)]"
++              className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-white shadow-[0_2px_6px_color-mix(in_srgb,var(--segment-color)_36%,transparent)]"
+               style={{ backgroundColor: color, ['--segment-color' as string]: color }}
+             >
+-              <TransportIcon mode={leg.mode} transportType={leg.transportType} size={16} strokeWidth={2.3}/>
++              <TransportIcon mode={leg.mode} transportType={leg.transportType} size={15} strokeWidth={2.3}/>
+             </span>
+             <span className="min-w-0 flex-1">
+-              <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+-                <b className="text-xs font-black tracking-tight">{leg.mode === 'COMMUNITY' ? 'Попутка · приватний автомобіль' : legLabel(leg)}</b>
++              <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
++                <b className="text-xs font-black tracking-tight">{leg.mode === 'COMMUNITY' ? 'Попутка · авто' : legLabel(leg)}</b>
+                 {liveStatus && leg.mode !== 'WALK' && (
+-                  <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-xs font-black ${liveStatus === 'LIVE' ? (isDark ? 'bg-emerald-400/15 text-emerald-300' : 'bg-emerald-50 text-emerald-800') : 'bg-[var(--route-card-alt)] text-[var(--route-muted)]'}`}>
++                  <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[11px] font-black ${liveStatus === 'LIVE' ? (isDark ? 'bg-emerald-400/15 text-emerald-300' : 'bg-emerald-50 text-emerald-800') : 'bg-[var(--route-card-alt)] text-[var(--route-muted)]'}`}>
+                     {liveStatus === 'LIVE' && <span aria-hidden="true" className="mg-live-pulse inline-block h-1.5 w-1.5 rounded-full bg-emerald-400"/>}
+                     {liveStatus === 'LIVE' ? 'ЗА РУХОМ' : liveStatus === 'PREDICTED' ? 'ПРОГНОЗ' : liveStatus === 'SCHEDULED' && leg.scheduleSemantics === 'frequency_estimate' ? 'ІНТЕРВАЛ' : liveStatus === 'SCHEDULED' ? 'РОЗКЛАД' : liveStatus === 'UNAVAILABLE' ? 'НЕДОСТУПНИЙ' : 'ДАНІ НЕ ПІДТВЕРДЖЕНІ'}
+                   </span>
+@@ -799,18 +895,18 @@ export function JourneyRouteMapScreen({
+               </span>
+             </span>
+           </button>
+-          <div className="flex shrink-0 flex-col items-end gap-1">
++          <div className="flex shrink-0 flex-col items-end gap-0.5">
+             {leg.mode !== 'WALK' && <b className="text-xs font-black tabular-nums" style={{ color: isDark ? color : 'var(--route-ink)' }}>{price.value}</b>}
+-            {leg.mode !== 'WALK' && price.caption && <span className="text-xs font-semibold text-[var(--route-muted)]">{price.caption}</span>}
++            {leg.mode !== 'WALK' && price.caption && <span className="text-[11px] font-semibold text-[var(--route-muted)]">{price.caption}</span>}
+             {scheduled && (
+               <button
+                 type="button"
+                 aria-label={`${expanded ? 'Згорнути' : 'Розгорнути'} зупинки: ${journeyLegLabel(leg.mode, leg.transportType)}`}
+                 aria-expanded={expanded}
+                 onClick={() => toggleExpanded(leg.id)}
+-                className="mg-press-subtle grid h-11 w-11 place-items-center rounded-lg text-[var(--route-muted)] hover:bg-[var(--route-hover)] hover:text-[var(--route-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--mg-blue)]"
++                className="mg-press-subtle grid h-8 w-8 place-items-center rounded-lg text-[var(--route-muted)] hover:bg-[var(--route-hover)] hover:text-[var(--route-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--mg-blue)]"
+               >
+-                <ChevronDown size={16} className={`route-stops-chevron transition-transform duration-[var(--mg-dur-fast)]${expanded ? ' is-open' : ''}`}/>
++                <ChevronDown size={15} className={`route-stops-chevron transition-transform duration-[var(--mg-dur-fast)]${expanded ? ' is-open' : ''}`}/>
+               </button>
+             )}
+           </div>
+@@ -1148,25 +1244,25 @@ export function JourneyRouteMapScreen({
+                   {cleanStopName(firstLeg?.origin.name) || 'Початок'} <span aria-hidden="true" className="mx-0.5 text-[var(--route-muted)]">→</span> {cleanStopName(lastLeg?.destination.name) || 'Кінець'}
+                 </p>
+               )}
+-              <div className="route-sheet-summary flex shrink-0 items-center justify-between gap-3 px-4 py-0.5">
++              <div className="route-sheet-summary flex shrink-0 items-center justify-between gap-3 px-3.5 py-1">
+                 <span className="flex min-w-0 flex-1 flex-col justify-center leading-tight">
+-                  <strong className="text-[20px] font-black leading-tight tracking-tight tabular-nums">{firstLeg ? formatTime(firstLeg.departureAt) : '—'} <span aria-hidden="true" className="text-[var(--route-muted)]">→</span> {lastLeg ? formatTime(lastLeg.arrivalAt) : '—'}</strong>
++                  <strong className="text-[19px] font-black leading-tight tracking-tight tabular-nums text-slate-900 dark:text-white">{firstLeg ? formatTime(firstLeg.departureAt) : '—'} <span aria-hidden="true" className="text-[var(--route-muted)]">→</span> {lastLeg ? formatTime(lastLeg.arrivalAt) : '—'}</strong>
+                   <span data-testid="canonical-route-duration" className="mt-0.5 truncate text-xs font-bold tabular-nums text-[var(--route-muted)]">{formatDuration(allDuration)} · {formatSegmentCount(journey.legs.length)}{journey.transfers > 0 ? ` · ${formatTransferCount(journey.transfers)}` : ''}</span>
+                 </span>
+                 <span data-testid="route-total-fare" className="flex shrink-0 flex-col items-end leading-tight">
+-                  <strong aria-label={`Загальна вартість: ${totalPriceLabel === '—' ? 'невідома' : totalPriceLabel}`} className={`text-[17px] font-black tabular-nums ${totalPriceLabel === '—' ? 'text-[var(--route-muted)]' : ''}`}>{priceSummary}</strong>
++                  <strong aria-label={`Загальна вартість: ${totalPriceLabel === '—' ? 'невідома' : totalPriceLabel}`} className={`text-[17px] font-black tabular-nums ${totalPriceLabel === '—' ? 'text-[var(--route-muted)]' : 'text-slate-900 dark:text-white'}`}>{priceSummary}</strong>
+                   {priceDisplay.cashOnly && totalPriceLabel !== '—' && <span className="mt-0.5 rounded-md bg-[var(--route-card-alt)] px-1.5 py-0.5 text-xs font-semibold text-[var(--route-muted)]">готівкою</span>}
+                 </span>
+               </div>
+ 
+-              <div className="mg-route-ribbon shrink-0 px-4 pb-1 pt-0.5" role="list" aria-label="Етапи маршруту">
++              <div className="mg-route-ribbon shrink-0 px-3.5 pb-1 pt-0.5" role="list" aria-label="Етапи маршруту">
+                 {ribbonItems.map(item => {
+                   const selected = activeSegmentId === item.id;
+                   const walk = item.leg.mode === 'WALK';
+                   return (
+                     <div key={item.id} role="listitem" className={`mg-route-ribbon__item${activeSegmentId && !selected ? ' is-muted' : ''}`} style={{ flexGrow: Math.max(1, Math.round(item.durationSeconds / 60)) }}>
+                       <button type="button" onClick={() => chooseSegment(item.id)} aria-pressed={selected} aria-label={`Вибрати етап: ${item.label}, ${item.detail}`} className={`mg-route-ribbon__pill mg-press-subtle${selected ? ' is-active' : ''}`} style={{ backgroundColor: walk ? 'var(--route-ribbon-walk)' : item.color }}>
+-                        <TransportIcon mode={item.leg.mode} transportType={item.leg.transportType} size={16} strokeWidth={2.4}/>
++                        <TransportIcon mode={item.leg.mode} transportType={item.leg.transportType} size={15} strokeWidth={2.4}/>
+                       </button>
+                       <span className="mg-route-ribbon__label">{item.label}</span>
+                       <span className="mg-route-ribbon__detail">{item.detail}</span>
+@@ -1175,8 +1271,48 @@ export function JourneyRouteMapScreen({
+                 })}
+               </div>
+ 
++              {/* Animated Approaching Vehicle Live Card */}
++              {activeTransitLeg && activeTransitLeg.mode !== 'WALK' && (
++                <div
++                  data-testid="approaching-vehicle-card"
++                  role="button"
++                  tabIndex={0}
++                  aria-label={`${activeTransitLeg.routeName ? `Автобус №${activeTransitLeg.routeName}` : 'Транспорт'} наближається, через ${Math.ceil(approachState.etaSeconds / 60)} хв на посадці`}
++                  onClick={focusApproachingVehicle}
++                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); focusApproachingVehicle(); } }}
++                  className="mg-approaching-banner mx-3.5 my-1 flex cursor-pointer items-center justify-between gap-2 rounded-xl border border-blue-500/25 bg-gradient-to-r from-blue-950/45 via-slate-900/60 to-emerald-950/35 p-1.5 px-2.5 text-xs shadow-sm backdrop-blur-md"
++                >
++                  <div className="flex min-w-0 flex-1 items-center gap-2">
++                    <span className="relative grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-blue-500/20 text-blue-400">
++                      <TransportIcon mode={activeTransitLeg.mode} transportType={activeTransitLeg.transportType} size={15} strokeWidth={2.4} />
++                      <span className="absolute -right-0.5 -top-0.5 flex h-2 w-2">
++                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
++                        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
++                      </span>
++                    </span>
++                    <div className="min-w-0 flex-1">
++                      <div className="flex items-center gap-1.5 truncate">
++                        <strong className="truncate font-black text-slate-100">
++                          {approachingVehicleLabel}
++                        </strong>
++                      </div>
++                      <p className="truncate text-xs font-medium text-slate-400">
++                        Посадка: {cleanStopName(activeTransitLeg.origin.name)} · {approachState.distanceMeters >= 1000 ? `${(approachState.distanceMeters / 1000).toFixed(1)} км` : `${approachState.distanceMeters} м`}
++                      </p>
++                    </div>
++                  </div>
++                  <div className="flex shrink-0 flex-col items-end gap-0.5">
++                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-black text-emerald-400 tabular-nums">
++                      <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
++                      {approachState.etaSeconds <= 30 ? 'прибуває' : `через ${Math.ceil(approachState.etaSeconds / 60)} хв`}
++                    </span>
++                    <span className="text-[11px] font-semibold text-blue-400/80">на посадці</span>
++                  </div>
++                </div>
++              )}
++
+               {sheetSnap === 'half' && (
+-                <p data-testid="route-medium-stages" className="shrink-0 truncate px-4 pb-0.5 text-xs font-medium tabular-nums text-[var(--route-muted)] opacity-85">
++                <p data-testid="route-medium-stages" className="sr-only">
+                   {ribbonItems.map(item => `${item.label}${item.badge ? ` ${item.badge}` : ''} (${formatJourneyDurationTile(item.durationSeconds)})`).join(' → ')}
+                 </p>
+               )}
+@@ -1185,15 +1321,15 @@ export function JourneyRouteMapScreen({
+ 
+           {/* Independent scrolling for details in medium and expanded modes */}
+           {(sheetSnap === 'half' || sheetSnap === 'expanded') && (
+-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-2" data-testid="route-segment-list">
+-              <ol className="space-y-1.5 pt-0.5">
++            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3.5 pb-2" data-testid="route-segment-list">
++              <ol className="space-y-1 pt-0.5">
+                 {renderSegmentCards()}
+               </ol>
+             </div>
+           )}
+ 
+           {/* Pinned CTA in all four snap states */}
+-          <div className={`mt-auto shrink-0 px-4 ${sheetSnap === 'peek' ? 'pb-2 pt-0.5' : 'pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-1 mb-1'}`}>
++          <div className={`mt-auto shrink-0 px-3.5 ${sheetSnap === 'peek' ? 'pb-2 pt-0.5' : 'pb-[max(0.6rem,env(safe-area-inset-bottom))] pt-1 mb-0.5'}`}>
+             {sheetSnap !== 'peek' && (() => {
+               const activeLeg = selectedLeg ?? firstLeg;
+               if (!activeLeg) return null;
+@@ -1204,22 +1340,19 @@ export function JourneyRouteMapScreen({
+                 <aside
+                   data-testid="smart-step-guidance"
+                   aria-label="Пояснення наступного етапу"
+-                  className="mb-1.5 rounded-xl border border-[var(--route-border)] bg-[var(--route-card-alt)] px-3 py-2 text-xs shadow-xs backdrop-blur-md"
++                  className="mb-1 rounded-xl border border-[var(--route-border)] bg-[var(--route-card-alt)] px-2.5 py-1 text-xs shadow-xs backdrop-blur-md"
+                 >
+                   <div className="flex items-center justify-between gap-2">
+                     <span className="flex items-center gap-1.5 font-black text-[var(--mg-blue)]">
+                       <Navigation size={13} className="shrink-0" />
+-                      <span className="truncate">{selectedLeg ? summary.headline : `Ваш 1-й етап: ${summary.headline}`}</span>
++                      <span className="truncate">{selectedLeg ? summary.headline : `1-й етап: ${summary.headline}`}</span>
+                     </span>
+                     {summary.transitBadge && (
+-                      <span className="shrink-0 rounded-full bg-[var(--route-card)] px-2 py-0.5 text-xs font-black text-[var(--route-muted)]">
++                      <span className="shrink-0 rounded-full bg-[var(--route-card)] px-1.5 py-0.5 text-[11px] font-black text-[var(--route-muted)]">
+                         {summary.transitBadge}
+                       </span>
+                     )}
+                   </div>
+-                  <p className="mt-0.5 text-xs font-medium leading-snug text-[var(--route-ink)] line-clamp-2">
+-                    {summary.narrative}
+-                  </p>
+                 </aside>
+               );
+             })()}
+diff --git a/src/views/ProductionMarketplace.tsx b/src/views/ProductionMarketplace.tsx
+index 359bf20..6999458 100644
+--- a/src/views/ProductionMarketplace.tsx
++++ b/src/views/ProductionMarketplace.tsx
+@@ -888,6 +888,20 @@ export function ProductionMarketplace() {
+     return () => window.removeEventListener('keydown', onKeyDown);
+   }, [showCreateMenu]);
+ 
++  useEffect(() => {
++    if (!showNotifications) return undefined;
++    const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') setShowNotifications(false); };
++    window.addEventListener('keydown', onKeyDown);
++    return () => window.removeEventListener('keydown', onKeyDown);
++  }, [showNotifications]);
++
++  useEffect(() => {
++    if (!showVehicleForm) return undefined;
++    const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') setShowVehicleForm(false); };
++    window.addEventListener('keydown', onKeyDown);
++    return () => window.removeEventListener('keydown', onKeyDown);
++  }, [showVehicleForm]);
++
+   const routePlaceKeyDown = (event: { key: string; preventDefault(): void }, field: 'origin' | 'destination') => {
+     const listOpen = routePlaceField === field && routePlaceSuggestions.length > 0;
+     const action = placeSuggestionKeyAction(event.key, listOpen, routePlaceActive);
+@@ -2043,8 +2057,8 @@ export function ProductionMarketplace() {
+     onStageChange={(legIndex) => keepActiveJourneyStage(activeJourneyNavigation.id, legIndex)}
+     onExit={exitJourneyNavigation}
+   />
+-    : selectedRouteMap ? routeMapScreen(selectedRouteMap, () => setSelectedRouteMap(null))
+-    : selectedJourney ? routeMapScreen(storedJourneyToApiJourney(selectedJourney), () => { setSelectedJourney(null); setTab('trips'); })
++    : selectedRouteMap ? routeMapScreen(selectedRouteMap, () => { setSelectedRouteMap(null); setSelectedJourney(null); setRoutePath('/trips'); })
++    : selectedJourney ? routeMapScreen(storedJourneyToApiJourney(selectedJourney), () => { setSelectedJourney(null); setSelectedRouteMap(null); setTab('trips'); setRoutePath('/trips'); })
+     : selectedOffer ? <div className="mx-auto w-full max-w-xl px-5 pb-5"><div className="mb-4 flex items-center gap-3"><button onClick={()=>{setSelectedOffer(null);setJourneyBookingLink(null);setTab('search');}} className="grid h-11 w-11 place-items-center rounded-full bg-white shadow-sm"><ArrowLeft size={18}/></button><div><p className="text-xs text-slate-500">Деталі поїздки</p><h1 className="font-extrabold">{selectedOffer.origin_name.split(',')[0]} → {selectedOffer.destination_name.split(',')[0]}</h1></div></div><div className="mb-3"><Suspense fallback={null}><OfferRoutePreview offer={selectedOffer}/></Suspense></div><div className="mb-3 overflow-hidden rounded-[1.4rem]"><VehiclePhoto url={selectedOffer.vehicle_photo_url} alt={`Авто водія ${selectedOffer.driver_name}`}/></div><div className="rounded-[1.5rem] bg-white p-5 shadow-sm"><span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">COMMUNITY · Попутка</span><div className="mt-5 grid grid-cols-2 gap-4"><div><small className="text-slate-400">Відправлення</small><p className="mt-1 text-xl font-extrabold">{formatDate(selectedOffer.departure_at,{hour:'2-digit',minute:'2-digit'})}</p><b>{selectedOffer.origin_name.split(',')[0]}</b></div><div className="text-right"><small className="text-slate-400">Прибуття</small><p className="mt-1 text-xl font-extrabold">{selectedOffer.arrival_at?formatDate(selectedOffer.arrival_at,{hour:'2-digit',minute:'2-digit'}):'—'}</p><b>{selectedOffer.destination_name.split(',')[0]}</b></div></div><div className="my-4 border-t border-slate-100"/><ol aria-label="Маршрут поїздки" className="relative ml-1 space-y-5 border-l-2 border-dashed border-[#BBD7FB] pl-5"><li className="relative"><span className="absolute -left-[1.72rem] top-1 h-3 w-3 rounded-full border-2 border-white bg-[var(--mg-action)] shadow"/><p className="text-sm font-extrabold text-[var(--mg-ink-primary)]">{formatDate(selectedOffer.departure_at,{hour:'2-digit',minute:'2-digit'})} · {selectedOffer.origin_name.split(',')[0]}</p><p className="text-xs text-slate-400">Посадка</p></li>{selectedOffer.distance_m&&selectedOffer.duration_s?<li className="text-xs font-semibold text-[var(--mg-muted)]">{(selectedOffer.distance_m/1000).toFixed(0)} км · {Math.floor(selectedOffer.duration_s/3600)} год {Math.round((selectedOffer.duration_s%3600)/60)} хв дорогою</li>:null}<li className="relative"><span className="absolute -left-[1.72rem] top-1 h-3 w-3 rounded-full border-2 border-white bg-[#EF4444] shadow"/><p className="text-sm font-extrabold text-[var(--mg-ink-primary)]">{selectedOffer.arrival_at?formatDate(selectedOffer.arrival_at,{hour:'2-digit',minute:'2-digit'}):'—'} · {selectedOffer.destination_name.split(',')[0]}</p><p className="text-xs text-slate-400">Висадка</p></li></ol><div className="my-4 border-t border-slate-100"/><p className="flex items-center gap-3 text-sm"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-blue-100 font-bold text-blue-700">{selectedOffer.driver_name.slice(0,1)}</span><span><b>{selectedOffer.driver_name}</b><small className="block text-[var(--mg-muted)]">{selectedOffer.review_count?`★ ${Number(selectedOffer.average_rating).toFixed(1)} · ${selectedOffer.review_count} відгуків`:'Новий водій'}</small></span></p><div className="mt-5 flex justify-between text-sm"><span className="text-slate-500">Вільні місця</span><b>{detailOfferBlocked?'—':selectedOffer.available_seats}</b></div>{detailOfferBlocked&&<p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs leading-4 text-amber-800">{OFFER_NO_LONGER_BOOKABLE_TEXT}</p>}<div className="mt-3 flex justify-between text-sm"><span className="text-slate-500">Вартість за {seats} {seats===1?'місце':'місця'}</span><b className="text-lg">{formatMoney(selectedOffer.price_per_seat_minor*seats,selectedOffer.currency)}</b></div><p className="mt-1 text-right text-xs text-slate-400">MARSHGO Community · комісія платформи 0%</p><button data-testid="offer-book-button" data-offer-id={selectedOffer.id} disabled={busy||detailOfferBlocked||selectedOffer.available_seats<seats} title={detailOfferBlocked?'Ця поїздка більше недоступна для бронювання':selectedOffer.available_seats<seats?'Недостатньо вільних місць для такої кількості пасажирів':''} onClick={()=>{setStatusMessage('');setBookingToConfirm(selectedOffer);}} className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 py-4 font-bold text-white disabled:opacity-50">{detailOfferBlocked?'Недоступно для бронювання':selectedOffer.available_seats<seats?'Недостатньо місць':'Забронювати місце'}<ArrowRight size={17}/></button></div></div> : tab==='navigation' ? null : tab==='map' ? <Suspense fallback={<main className="grid min-h-[100svh] place-items-center bg-[var(--mg-canvas)] text-sm text-slate-500">Завантажуємо карту…</main>}><TransportMapView onBack={()=>setTab('search')}/></Suspense> : tab==='home' ? (showResults ? resultsScreen : homeScreen) : tab==='search' ? (showResults ? resultsScreen : searchScreen) : tab==='trips' ? tripsScreen : tab==='chat' ? chatScreen : tab==='profile' ? (profileSection ? <Suspense fallback={profileSectionPending}><ProfileSections section={profileSection} onBack={()=>setProfileSection(null)} vehicles={vehicles} records={verificationRecords} onLogoutAll={logoutAllDevices} onExportData={downloadPersonalData} onRequestDeletion={()=>setConfirmDeletion(true)} onOpenSafetyReport={()=>{setProfileSection(null);setTab('trips');}}/></Suspense> : profileScreen) : tab==='admin' ? adminDashboard : tab==='demand' ? demandFormScreen : tab==='offer-new' ? offerFormScreen : tab==='requests' ? requestsScreen : myDemandsScreen;
+ 
+   const navigationOverlay = navigationMounted ? <Suspense fallback={null}><ProductionNavigation isPresented={tab === 'navigation'} onSessionActiveChange={onNavigationSessionActiveChange} autoStart={navAutoStart} initialDestination={navInitialDestination} onAddVehicle={() => { setNavAutoStart(false); setNavInitialDestination(null); setTab('profile'); }} onBack={() => { setNavAutoStart(false); setNavInitialDestination(null); setTab('home'); }} onOpenDemand={(demandId, candidateId) => void openNavigationDemand(demandId, candidateId)}/></Suspense> : null;
+@@ -2073,10 +2087,10 @@ export function ProductionMarketplace() {
+     <DepartureDateTimePicker open={departurePickerOpen} title="Виїзд" caption="Виберіть дату й час виїзду" timeLabel="Виїзд" value={journeyDeparture} onChange={(value) => { setJourneyDeparture(value); setDate(value.slice(0, 10)); if (journeyArrivalBy && value >= journeyArrivalBy) setJourneyArrivalBy(null); }} onClose={() => setDeparturePickerOpen(false)}/>
+     <DepartureDateTimePicker open={arrivalPickerOpen} title="Прибути до" caption="Повернемо лише маршрути, що прибувають не пізніше цього часу" timeLabel="Прибути до" minDate={journeyDeparture.slice(0, 10)} value={journeyArrivalBy ?? journeyDeparture} onChange={(value) => setJourneyArrivalBy(value)} onClose={() => setArrivalPickerOpen(false)}/>
+     {tab==='search'&&transportPickerOpen&&<div className="fixed inset-0 z-[var(--mg-z-picker-scrim)] flex items-end justify-center bg-slate-950/55 px-2 pt-[max(.5rem,env(safe-area-inset-top))] backdrop-blur-sm sm:items-center sm:p-4" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget)setTransportPickerOpen(false);}}><section role="dialog" aria-modal="true" aria-labelledby="transport-picker-title" className="flex max-h-[92dvh] w-full max-w-xl flex-col overflow-hidden rounded-t-[var(--mg-radius-3xl)] bg-white shadow-2xl sm:rounded-[var(--mg-radius-3xl)]"><header className="flex shrink-0 items-center justify-between border-b border-slate-100 px-4 py-3"><div><h2 id="transport-picker-title" className="font-extrabold">Фільтри маршруту</h2><p className="text-xs text-slate-500">Оберіть доступні види та провайдерів</p></div><button type="button" onClick={()=>setTransportPickerOpen(false)} aria-label="Закрити вибір транспорту" className="grid h-11 w-11 place-items-center rounded-full bg-slate-100 text-slate-600"><X size={19}/></button></header><div className="min-h-0 flex-1 overflow-y-auto px-4 pb-[max(1rem,env(safe-area-inset-bottom))]"><TransportTypesPanel providersInitiallyOpen selection={transportSelection} groups={providerGroups} onChange={changeTransportSelection}/></div></section></div>}
+-    {showNotifications&&<div className="fixed inset-0 z-[var(--mg-z-scrim)] flex items-end justify-center bg-slate-950/40 p-3 sm:items-center" onMouseDown={event=>{if(event.target===event.currentTarget)setShowNotifications(false);}}><section aria-labelledby="notification-heading" className="max-h-[78svh] w-full max-w-md overflow-hidden rounded-[var(--mg-radius-3xl)] bg-white shadow-2xl"><div className="flex items-center justify-between gap-2 border-b border-slate-100 px-3 py-2"><div className="min-w-0 flex-1 pl-2"><h2 id="notification-heading" className="truncate font-extrabold">Сповіщення</h2><p className="mt-0.5 truncate text-xs text-slate-500">Оновлення ваших поїздок</p></div><div className="flex shrink-0 items-center gap-1"><button disabled={!notificationPage.unreadCount} onClick={()=>void markAllNotificationsRead()} className="min-h-11 whitespace-nowrap rounded-full px-2 text-xs font-bold text-blue-700 disabled:text-slate-300">Прочитати все</button><button onClick={()=>setShowNotifications(false)} aria-label="Закрити сповіщення" className="grid h-11 w-11 place-items-center rounded-full text-slate-500"><X size={20}/></button></div></div><div className="max-h-[68svh] overflow-y-auto p-3">{notificationsLoading&&notificationPage.items.length===0?<p className="p-6 text-center text-sm text-slate-500">Завантажуємо…</p>:notificationPage.items.length===0?<p className="p-6 text-center text-sm text-slate-500">Поки що сповіщень немає.</p>:<div className="space-y-2">{notificationPage.items.map(notification=><button key={notification.id} onClick={()=>void markNotificationRead(notification)} className={`flex w-full items-start gap-3 rounded-2xl p-3 text-left ${notification.read_at?'bg-slate-50':'bg-blue-50'}`}><span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${notification.read_at?'bg-slate-300':'bg-blue-600'}`}></span><span className="min-w-0 flex-1"><b className="block text-sm">{notification.title}</b><span className="mt-0.5 block text-xs leading-5 text-slate-600">{notification.body}</span><time className="mt-1 block text-xs text-[var(--mg-muted)]">{formatDate(notification.created_at,{dateStyle:'medium',timeStyle:'short'})}</time></span></button>)}</div>}{notificationPage.nextCursor&&<button disabled={notificationsLoading} onClick={()=>void loadMoreNotifications()} className="mt-3 w-full rounded-xl bg-slate-100 py-3 text-xs font-bold text-slate-600 disabled:opacity-50">{notificationsLoading?'Завантажуємо…':'Завантажити раніші'}</button>}</div></section></div>}
++    {showNotifications&&<div className="fixed inset-0 z-[var(--mg-z-scrim)] flex items-end justify-center bg-slate-950/40 p-3 sm:items-center" onMouseDown={event=>{if(event.target===event.currentTarget)setShowNotifications(false);}}><section aria-labelledby="notification-heading" className="max-h-[78svh] w-full max-w-md overflow-hidden rounded-[var(--mg-radius-3xl)] border border-slate-200/80 bg-white shadow-2xl dark:border-[#263648] dark:bg-[#0B1A28]"><div className="flex items-center justify-between gap-2 border-b border-slate-100 px-3 py-2 dark:border-[#1E3044]"><div className="min-w-0 flex-1 pl-2"><h2 id="notification-heading" className="truncate font-extrabold text-[#0E1F35] dark:text-white">Сповіщення</h2><p className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">Оновлення ваших поїздок</p></div><div className="flex shrink-0 items-center gap-1"><button disabled={!notificationPage.unreadCount} onClick={()=>void markAllNotificationsRead()} className="min-h-11 whitespace-nowrap rounded-full px-2 text-xs font-bold text-blue-700 disabled:text-slate-300 dark:text-blue-400 dark:disabled:text-slate-600">Прочитати все</button><button onClick={()=>setShowNotifications(false)} aria-label="Закрити сповіщення" className="grid h-11 w-11 place-items-center rounded-full text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"><X size={20}/></button></div></div><div className="max-h-[68svh] overflow-y-auto p-3">{notificationsLoading&&notificationPage.items.length===0?<p className="p-6 text-center text-sm text-slate-500 dark:text-slate-400">Завантажуємо…</p>:notificationPage.items.length===0?<p className="p-6 text-center text-sm text-slate-500 dark:text-slate-400">Поки що сповіщень немає.</p>:<div className="space-y-2">{notificationPage.items.map(notification=><button key={notification.id} onClick={()=>void markNotificationRead(notification)} className={`flex w-full items-start gap-3 rounded-2xl p-3 text-left ${notification.read_at?'bg-slate-50 dark:bg-slate-800/40':'bg-blue-50 dark:bg-blue-950/40'}`}><span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${notification.read_at?'bg-slate-300 dark:bg-slate-600':'bg-blue-600 dark:bg-blue-400'}`}></span><span className="min-w-0 flex-1"><b className="block text-sm text-[#0E1F35] dark:text-white">{notification.title}</b><span className="mt-0.5 block text-xs leading-5 text-slate-600 dark:text-slate-300">{notification.body}</span><time className="mt-1 block text-xs text-[var(--mg-muted)]">{formatDate(notification.created_at,{dateStyle:'medium',timeStyle:'short'})}</time></span></button>)}</div>}{notificationPage.nextCursor&&<button disabled={notificationsLoading} onClick={()=>void loadMoreNotifications()} className="mt-3 w-full rounded-xl bg-slate-100 py-3 text-xs font-bold text-slate-600 disabled:opacity-50 dark:bg-slate-800 dark:text-slate-300">{notificationsLoading?'Завантажуємо…':'Завантажити раніші'}</button>}</div></section></div>}
+     {proposalTarget&&<div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 p-3 sm:items-center"><form onSubmit={sendProposal} className="w-full max-w-md rounded-[var(--mg-radius-3xl)] bg-white p-5 shadow-xl"><div className="mb-3 flex items-center justify-between"><div><p className="text-xs text-slate-500">Ваша ціна для пасажира</p>{proposalNavigationCandidateId&&<p className="mt-1 text-xs text-emerald-700">Пропозиція прив’язана до підтвердженого збігу навігації; це ще не бронювання.</p>}<h2 className="font-extrabold">{proposalTarget.origin_name.split(',')[0]} → {proposalTarget.destination_name.split(',')[0]}</h2></div><button type="button" onClick={()=>{setProposalTarget(null);setProposalNavigationCandidateId(null);}} aria-label="Закрити"><X size={20}/></button></div><label className="mb-3 block text-xs font-bold text-slate-600">Перевірене авто<select required value={proposalVehicleId} onChange={event=>setProposalVehicleId(event.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm"><option value="">Оберіть авто</option>{vehicles.filter(v=>v.verification_status==='verified').map(v=><option key={v.id} value={v.id}>{v.make} {v.model} · {v.seat_count} місць</option>)}</select></label>{!vehicles.some(v=>v.verification_status==='verified')&&<p className="mb-3 text-xs leading-5 text-amber-700">Немає перевіреного авто. Спершу потрібно пройти перевірку перевізника.</p>}<div className="grid grid-cols-2 gap-3"><label className="text-xs font-bold text-slate-600">Ціна, грн<input required inputMode="decimal" value={proposalPrice} onChange={event=>setProposalPrice(event.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm" placeholder="Загальна сума"/></label><label className="text-xs font-bold text-slate-600">Час виїзду<input required type="datetime-local" value={proposalDeparture} onChange={event=>setProposalDeparture(event.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-200 px-2 py-3 text-xs"/></label></div><label className="mt-3 block text-xs font-bold text-slate-600">Коментар<input value={proposalComment} onChange={event=>setProposalComment(event.target.value)} maxLength={1000} className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm" placeholder="Коротко про поїздку"/></label><button disabled={busy||!vehicles.some(v=>v.verification_status==='verified')} className="mt-4 w-full rounded-xl bg-blue-600 py-3.5 font-bold text-white disabled:opacity-50">Надіслати пропозицію</button></form></div>}
+     {counterTarget&&<div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 p-3 sm:items-center"><form onSubmit={sendCounter} className="w-full max-w-md rounded-[var(--mg-radius-3xl)] bg-white p-5 shadow-xl"><div className="mb-4 flex items-center justify-between"><div><p className="text-xs text-slate-500">Зустрічна пропозиція</p><h2 className="font-extrabold">Змінити суму або час</h2></div><button type="button" onClick={()=>setCounterTarget(null)} aria-label="Закрити"><X size={20}/></button></div><label className="mb-3 block text-xs font-bold text-slate-600">Загальна сума, грн<input required inputMode="decimal" value={counterPrice} onChange={event=>setCounterPrice(event.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm"/></label><label className="mb-3 block text-xs font-bold text-slate-600">Час відправлення<input required type="datetime-local" value={counterDeparture} onChange={event=>setCounterDeparture(event.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm"/></label><label className="block text-xs font-bold text-slate-600">Коментар<input value={counterComment} onChange={event=>setCounterComment(event.target.value)} maxLength={1000} className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm"/></label><button disabled={busy} className="mt-4 w-full rounded-xl bg-blue-600 py-3.5 font-bold text-white">Надіслати зустрічну</button></form></div>}
+-    {showVehicleForm && <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 p-3 sm:items-center"><form onSubmit={createVehicle} className="w-full max-w-md rounded-[var(--mg-radius-3xl)] bg-white p-5 shadow-xl"><div className="mb-4 flex items-center justify-between"><h2 className="text-lg font-extrabold">Додати автомобіль</h2><button type="button" onClick={()=>setShowVehicleForm(false)} aria-label="Закрити"><X size={20}/></button></div>{([['make','Марка'],['model','Модель']] as const).map(([key,label])=><label key={key} className="mb-3 block text-xs font-bold text-slate-600">{label}<input required value={vehicleForm[key]} onChange={event=>setVehicleForm({...vehicleForm,[key]:event.target.value})} className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm outline-none focus:border-blue-500"/></label>)}<label className="mb-3 block text-xs font-bold text-slate-600">Номерний знак<input required value={vehicleForm.plate} onChange={event=>setVehicleForm({...vehicleForm,plate:event.target.value.toUpperCase()})} placeholder="AA1234BB" autoCapitalize="characters" className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm uppercase outline-none focus:border-blue-500"/></label><label className="mb-3 block text-xs font-bold text-slate-600">Фото автомобіля<input required type="file" accept="image/jpeg,image/png,image/webp" onChange={event=>setVehicleFormPhoto(event.target.files?.[0] ?? null)} className="mt-1.5 block w-full text-xs"/></label><div className="grid grid-cols-2 gap-3"><label className="text-xs font-bold text-slate-600">Рік<input required type="number" min="1950" max={new Date().getFullYear()+1} value={vehicleForm.modelYear} onChange={event=>setVehicleForm({...vehicleForm,modelYear:Number(event.target.value)})} className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm"/></label><label className="text-xs font-bold text-slate-600">Місця<input required type="number" min="1" max="20" value={vehicleForm.seats} onChange={event=>setVehicleForm({...vehicleForm,seats:Number(event.target.value)})} className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm"/></label></div><p className="my-3 text-xs leading-5 text-amber-700">Після додавання завантажте техпаспорт і посвідчення водія. Фото авто можна буде додати після підключення сховища.</p><button disabled={busy} className="w-full rounded-xl bg-blue-600 py-3.5 font-bold text-white">{busy?'Зберігаємо…':'Зберегти автомобіль'}</button></form></div>}
++    {showVehicleForm && <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 p-3 sm:items-center"><form onSubmit={createVehicle} className="w-full max-w-md rounded-[var(--mg-radius-3xl)] border border-slate-200/80 bg-white p-5 shadow-xl dark:border-[#263648] dark:bg-[#0B1A28]"><div className="mb-4 flex items-center justify-between"><h2 className="text-lg font-extrabold text-[#0E1F35] dark:text-white">Додати автомобіль</h2><button type="button" onClick={()=>setShowVehicleForm(false)} aria-label="Закрити" className="grid h-11 w-11 place-items-center rounded-full text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"><X size={20}/></button></div>{([['make','Марка'],['model','Модель']] as const).map(([key,label])=><label key={key} className="mb-3 block text-xs font-bold text-slate-600 dark:text-slate-300">{label}<input required value={vehicleForm[key]} onChange={event=>setVehicleForm({...vehicleForm,[key]:event.target.value})} className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm outline-none focus:border-blue-500 dark:border-[#263648] dark:bg-[#122542] dark:text-white"/></label>)}<label className="mb-3 block text-xs font-bold text-slate-600 dark:text-slate-300">Номерний знак<input required value={vehicleForm.plate} onChange={event=>setVehicleForm({...vehicleForm,plate:event.target.value.toUpperCase()})} placeholder="AA1234BB" autoCapitalize="characters" className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm uppercase outline-none focus:border-blue-500 dark:border-[#263648] dark:bg-[#122542] dark:text-white"/></label><label className="mb-3 block text-xs font-bold text-slate-600 dark:text-slate-300">Фото автомобіля<input required type="file" accept="image/jpeg,image/png,image/webp" onChange={event=>setVehicleFormPhoto(event.target.files?.[0] ?? null)} className="mt-1.5 block w-full text-xs text-slate-600 dark:text-slate-400"/></label><div className="grid grid-cols-2 gap-3"><label className="text-xs font-bold text-slate-600 dark:text-slate-300">Рік<input required type="number" min="1950" max={new Date().getFullYear()+1} value={vehicleForm.modelYear} onChange={event=>setVehicleForm({...vehicleForm,modelYear:Number(event.target.value)})} className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm dark:border-[#263648] dark:bg-[#122542] dark:text-white"/></label><label className="text-xs font-bold text-slate-600 dark:text-slate-300">Місця<input required type="number" min="1" max="20" value={vehicleForm.seats} onChange={event=>setVehicleForm({...vehicleForm,seats:Number(event.target.value)})} className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm dark:border-[#263648] dark:bg-[#122542] dark:text-white"/></label></div><p className="my-3 text-xs leading-5 text-amber-700 dark:text-amber-400">Після додавання завантажте техпаспорт і посвідчення водія. Фото авто можна буде додати після підключення сховища.</p><button disabled={busy} className="w-full rounded-xl bg-blue-600 py-3.5 font-bold text-white shadow-md transition active:scale-[.99] disabled:opacity-50">{busy?'Зберігаємо…':'Зберегти автомобіль'}</button></form></div>}
+     {showReportForm&&selectedBooking&&<div className="fixed inset-0 z-[var(--mg-z-scrim)] flex items-end justify-center bg-slate-950/50 p-3 sm:items-center"><form onSubmit={submitSafetyReport} className="w-full max-w-md rounded-[var(--mg-radius-3xl)] bg-white p-5 shadow-2xl"><div className="mb-4 flex items-center justify-between"><div><p className="text-xs font-bold uppercase tracking-wide text-amber-700">Безпека спільноти</p><h2 className="text-lg font-extrabold">Поскаржитися</h2></div><button type="button" onClick={()=>setShowReportForm(false)} aria-label="Закрити"><X size={20}/></button></div><p className="mb-3 text-xs text-slate-500">Скарга стосується учасника поїздки {selectedBooking.origin_name} → {selectedBooking.destination_name}. Не додавайте платіжні дані чи сторонні персональні відомості.</p><label className="mb-3 block text-xs font-bold text-slate-600">Категорія<select value={reportCategory} onChange={event=>setReportCategory(event.target.value as ApiModerationCase['category'])} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm"><option value="safety">Питання безпеки</option><option value="harassment">Домагання або образи</option><option value="fraud">Підозра на шахрайство</option><option value="service">Якість поїздки</option><option value="other">Інше</option></select></label><label className="block text-xs font-bold text-slate-600">Опишіть ситуацію<textarea required minLength={10} maxLength={2000} value={reportDetails} onChange={event=>setReportDetails(event.target.value)} className="mt-1.5 min-h-28 w-full rounded-xl border border-slate-200 p-3 text-sm font-normal" placeholder="Що сталося? (10–2000 символів)"/></label><div className="mt-3 flex justify-end text-xs text-slate-400">{reportDetails.length}/2000</div><button disabled={busy||reportDetails.trim().length<10} className="mt-3 w-full rounded-xl bg-amber-700 py-3.5 font-bold text-white disabled:opacity-50">{busy?'Надсилаємо…':'Надіслати приватну скаргу'}</button></form></div>}
+     {verificationTarget&&<div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 p-3 sm:items-center"><form onSubmit={submitVerification} className="w-full max-w-md rounded-[var(--mg-radius-3xl)] bg-white p-5 shadow-xl"><div className="mb-3 flex items-center justify-between"><div><p className="text-xs text-slate-500">Перевірка автомобіля</p><h2 className="font-extrabold">{verificationTarget.make} {verificationTarget.model}</h2></div><button type="button" onClick={()=>{setVerificationTarget(null);setRegistrationEvidence(null);setDriverLicenseEvidence(null);}} aria-label="Закрити"><X size={20}/></button></div><p className="mb-4 rounded-xl bg-blue-50 p-3 text-xs leading-5 text-blue-900">Завантажте техпаспорт і посвідчення водія. Маршрути не показують ці документи; рішення ухвалює уповноважений модератор.</p><label className="mb-3 block text-xs font-bold text-slate-600">Свідоцтво про реєстрацію<input required type="file" accept="image/jpeg,image/png,application/pdf" onChange={event=>setRegistrationEvidence(event.target.files?.[0]??null)} className="mt-1.5 block w-full rounded-xl border border-slate-200 p-2 text-xs"/></label><label className="block text-xs font-bold text-slate-600">Посвідчення водія<input required type="file" accept="image/jpeg,image/png,application/pdf" onChange={event=>setDriverLicenseEvidence(event.target.files?.[0]??null)} className="mt-1.5 block w-full rounded-xl border border-slate-200 p-2 text-xs"/></label><p className="mt-2 text-xs text-slate-500">JPEG, PNG або PDF · до 8 МБ на файл</p><button disabled={busy} className="mt-4 w-full rounded-xl bg-blue-600 py-3.5 font-bold text-white disabled:opacity-50">{busy?'Завантажуємо…':'Передати на перевірку'}</button></form></div>}
+     {reviewingRecord&&<div className="fixed inset-0 z-[var(--mg-z-scrim-raised)] flex items-end justify-center bg-slate-950/50 p-3 sm:items-center"><section className="w-full max-w-lg rounded-[var(--mg-radius-3xl)] bg-white p-4 shadow-2xl"><div className="mb-3 flex items-center justify-between"><div><p className="text-xs font-bold uppercase tracking-wide text-blue-600">Перегляд документа</p><h2 className="font-extrabold">{reviewingRecord.display_name} · {reviewingRecord.verification_type==='vehicle'?'Техпаспорт':reviewingRecord.verification_type==='driver_license'?'Посвідчення водія':'Документ'}</h2></div><button onClick={()=>{setReviewingRecord(null);setReviewEvidenceUrl('');}} aria-label="Закрити"><X size={20}/></button></div><iframe title="Документ водія для перевірки" src={reviewEvidenceUrl} className="h-[48svh] w-full rounded-xl border border-slate-200 bg-slate-50"/><label className="mt-3 block text-xs font-bold text-slate-600">Причина відмови — обов’язкова для відхилення<textarea value={reviewNote} onChange={event=>setReviewNote(event.target.value)} maxLength={1000} className="mt-1.5 min-h-16 w-full rounded-xl border border-slate-200 p-3 text-sm font-normal" placeholder="Коротко опишіть невідповідність"/></label><div className="mt-3 grid grid-cols-2 gap-2"><button disabled={busy} onClick={()=>void decideVerification('rejected')} className="rounded-xl border border-rose-200 py-3 text-xs font-bold text-rose-700 disabled:opacity-50">Відхилити</button><button disabled={busy} onClick={()=>void decideVerification('approved')} className="rounded-xl bg-emerald-700 py-3 text-xs font-bold text-white disabled:opacity-50">Схвалити документ</button></div></section></div>}
+diff --git a/src/views/ProductionNavigation.tsx b/src/views/ProductionNavigation.tsx
+index c474b42..60ee290 100644
+--- a/src/views/ProductionNavigation.tsx
++++ b/src/views/ProductionNavigation.tsx
+@@ -750,7 +750,26 @@ export function ProductionNavigation({ onBack, onOpenDemand, onSessionActiveChan
+             {session.maneuvers.map((m, idx) => {
+               const Icon = maneuverIcon(m);
+               return (
+-                <li key={m.id || idx} className="flex items-start gap-3 py-2 text-xs">
++                <li
++                  key={m.id || idx}
++                  role="button"
++                  tabIndex={0}
++                  aria-label={`Вулиця: ${m.streetName || instructionText(m)}`}
++                  onClick={() => {
++                    if (m.location && m.location.length === 2) {
++                      mapRef.current?.focus(m.location as [number, number], 16.5);
++                    }
++                  }}
++                  onKeyDown={e => {
++                    if (e.key === 'Enter' || e.key === ' ') {
++                      e.preventDefault();
++                      if (m.location && m.location.length === 2) {
++                        mapRef.current?.focus(m.location as [number, number], 16.5);
++                      }
++                    }
++                  }}
++                  className="flex cursor-pointer items-start gap-3 rounded-xl px-1.5 py-2 text-xs transition-colors hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 dark:hover:bg-white/5"
++                >
+                   <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-blue-50 text-blue-600 dark:bg-white/10 dark:text-blue-300">
+                     <Icon size={16} />
+                   </span>
+diff --git a/src/views/routeSheet.ts b/src/views/routeSheet.ts
+index 38365c7..ff18479 100644
+--- a/src/views/routeSheet.ts
++++ b/src/views/routeSheet.ts
+@@ -22,10 +22,10 @@ export const ROUTE_SHEET_LOGICAL_LABELS: Readonly<Record<RouteSheetSnap, RouteSh
+  */
+ export function routeSheetHeights(viewportHeight: number): RouteSheetHeights {
+   const viewport = Number.isFinite(viewportHeight) ? Math.max(320, viewportHeight) : 844;
+-  const expanded = Math.min(840, viewport * 0.9, Math.max(0, viewport - 172));
+-  const half = Math.min(430, Math.max(300, viewport * 0.375));
+-  const collapsed = Math.min(300, Math.max(240, Math.round(viewport * 0.29)), Math.max(180, half - 44));
+-  const peek = Math.min(collapsed - 36, Math.max(176, Math.min(208, Math.round(viewport * 0.225))));
++  const expanded = Math.min(860, Math.max(560, viewport - 80));
++  const half = Math.min(520, Math.max(380, Math.round(viewport * 0.48)));
++  const collapsed = Math.min(270, Math.max(200, Math.round(viewport * 0.26)));
++  const peek = Math.min(160, Math.max(110, Math.round(viewport * 0.15)));
+   return { peek, collapsed, half, expanded };
+ }
+ 

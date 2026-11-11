@@ -1,0 +1,52 @@
+{
+  "generated_at_utc": "2026-11-11",
+  "target_repository": "dima1203oleg/MarshGO2",
+  "target_base_sha": "8542f4b5bd90512d8e22974bcdb9b1184c700821",
+  "import_branch": "codex/unified-marshgo-import-2026-11-11",
+  "release_status": "NOT_RELEASED",
+  "source_repositories": {
+    "MarshGO": {
+      "branch": "antigravity/ultimate-premium-web-9",
+      "head_sha": "4fd9bd70dd36b49f1c538c7a3e1a2cd1dc5ae0fd",
+      "dirty_path_count": 511,
+      "snapshot_includes_working_tree": true
+    },
+    "MarshGO-Server": {
+      "branch": "antigravity/ukraine-12-transports-multimodal",
+      "head_sha": "e9934abbd8fc973177de8d7f47548739758a1b74",
+      "dirty_path_count": 41,
+      "snapshot_includes_working_tree": true
+    },
+    "MarshGO-Site": {
+      "branch": "qoder/route-geometry-continuation-20261110",
+      "head_sha": "1c52ab315ed74d11298a4ada0aaf6704e8c28ce7",
+      "dirty_path_count": 40,
+      "snapshot_includes_working_tree": true
+    },
+    "MarshGO-iOS": {
+      "branch": "codex/production-site-sync-20261014",
+      "head_sha": "4353cec3cacbaf662ceea047402f361024292b22",
+      "dirty_path_count": 0,
+      "snapshot_includes_working_tree": true
+    },
+    "MarshGO-Admin": {
+      "branch": "main",
+      "head_sha": "d8afa64c4efda8ce4f10557a03651943effa52a7",
+      "dirty_path_count": 0,
+      "snapshot_includes_working_tree": true
+    },
+    "MarshGO-Partner": {
+      "branch": "main",
+      "head_sha": "4d605d4353af281dd295fabf0c7c2ac05efe222e",
+      "dirty_path_count": 0,
+      "snapshot_includes_working_tree": true
+    }
+  },
+  "site_alternate_worktree": {
+    "branch": "antigravity/ultimate-premium-web-9",
+    "head_sha": "eda449f008025b2126c92fd24cd68deb513ca3ad",
+    "merge_base_with_primary_site": "dbb29cf188b045ce4629db1bf5c8244bf74b8372",
+    "overlay_applied": false,
+    "eligible_untracked_files_preserved": 2
+  }
+}

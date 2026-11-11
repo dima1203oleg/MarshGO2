@@ -1,0 +1,25 @@
+import { chromium } from '@playwright/test';
+const BASE = process.env.BASE_URL ?? 'http://localhost:4173';
+const email = `cp3.dbg.${Date.now()}@marshgo.ua`;
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: 430, height: 932 }, isMobile: true, hasTouch: true });
+await page.goto(BASE, { waitUntil: 'domcontentloaded' });
+await page.locator('button:has-text("У мене вже є акаунт")').click({ timeout: 20_000 });
+await page.locator('button:has-text("Немає акаунта? Зареєструватися")').click({ timeout: 20_000 });
+await page.locator('input[autocomplete="name"]').fill('CP3 Dbg');
+await page.locator('input[type="email"]').fill(email);
+await page.locator('input[autocomplete="new-password"]').fill('Password2026!');
+await page.locator('button:has-text("Зареєструватися")').click();
+await page.waitForSelector('.production-app', { timeout: 30_000 });
+await page.waitForTimeout(2000);
+const dump = async (label) => {
+  const buttons = (await page.locator('button').allInnerTexts()).map((b) => b.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  const inputs = await page.locator('input,select,textarea').evaluateAll((els) => els.map((e) => `${e.tagName}[${e.getAttribute('type')}] aria=${e.getAttribute('aria-label')} ph=${e.getAttribute('placeholder')}`));
+  const heads = (await page.locator('h1,h2').allInnerTexts()).map((h) => h.replace(/\s+/g, ' ').trim());
+  console.log(`\n### ${label}\nHEADS: ${JSON.stringify(heads.slice(0, 8))}\nINPUTS: ${JSON.stringify(inputs.slice(0, 10))}\nBUTTONS: ${JSON.stringify(buttons.slice(0, 30))}`);
+};
+await dump('home');
+await page.locator('[data-testid="global-bottom-navigation"] button:has-text("Пошук")').click().catch((e) => console.log('nav search fail', e.message.split('\n')[0]));
+await page.waitForTimeout(1500);
+await dump('search tab');
+await browser.close();
