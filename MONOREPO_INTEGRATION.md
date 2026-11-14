@@ -15,7 +15,7 @@ database write, port 7777 restart, or zrok restart is part of this integration.
 | App | Canonical revision | Included work | Verification state |
 |---|---|---|---|
 | Site | `MarshGO-Site/main` `6ed4875ef8f02c5861dfe021e6baaac41b2205f3` | Qoder worktree `f88ba552c89697a0a32da582d638fad1fc075be2`: all 56 tracked working-tree edits and 32 untracked paths overlaid. This retains the route geometry/HyperFlight, compact sheet, hidden global dock on map, all transport modes, Magnetic Domino, haptic/audio feedback, place-search recovery, home-screen art and related tests. | Tests and mobile simulator acceptance pending in this monorepo. |
-| Server | Qoder A05 `248e413b2a9ee747ce3b0268ba724921b2e03501`, based exactly on merged `main` `53b8eed0a65550d1365e54c202fab5a65dd5ed58` | Includes merged Qoder CP5-A01 ordinals, CP5-A02 `TOTAL_ALL` fare basis, CP5-A03 proposal revision guard and the Qoder idempotency-key interval binding/tests from A05. | Merged A01/A02/A03 CI passed on `main`; A05 targeted checks still pending here. |
+| Server | Qoder A05 `248e413b2a9ee747ce3b0268ba724921b2e03501`, based exactly on merged `main` `53b8eed0a65550d1365e54c202fab5a65dd5ed58` | Includes merged Qoder CP5-A01 ordinals, CP5-A02 `TOTAL_ALL` fare basis, CP5-A03 proposal revision guard and the Qoder idempotency-key interval binding/tests from A05. Previously captured source-only files absent from current main were retained; see the preserved legacy files note below. | Merged A01/A02/A03 CI passed on `main`; A05 targeted checks still pending here. |
 | iOS | `MarshGO-iOS/main` `309cf66f9bd718d5ee9f794d2ee72f8b70a2536f` | Current canonical Capacitor shell and simulator project. Build is rewired to the integrated `apps/site` directory rather than fetching another Site checkout. | iPhone 15 Pro Max Simulator build and launch pending. |
 | Admin | `main` `d8afa64c4efda8ce4f10557a03651943effa52a7` | Existing source snapshot. | Workspace checks pending. |
 | Partner | `main` `4d605d4353af281dd295fabf0c7c2ac05efe222e` | Existing source snapshot. | Workspace checks pending. |
@@ -31,6 +31,12 @@ Server A05 is an additional Qoder commit not yet merged to canonical Server
 `main`; its source and tests are included so they are not lost. This does not
 claim A05 is verified or released. Keep it visible for review until its
 targeted checks pass and the canonical PR/main state is resolved.
+
+The original MarshGO2 snapshot also contained 13 tracked Server source/test/doc
+files that are absent from the current canonical Server A05 tree. They were
+preserved in the integration branch to avoid deleting existing work. They are
+not imported into the current Server-main verification claim and need a
+separate provenance/reconciliation review before any later cleanup.
 
 ## Workspace wiring
 
