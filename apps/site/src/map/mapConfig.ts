@@ -1,0 +1,66 @@
+import type { StyleSpecification } from 'maplibre-gl';
+import type { MapTheme } from './MapAdapter';
+import { buildFallbackStyle } from './style/buildStyle';
+import { parseMapAssetManifest } from './style/manifest';
+import { darkenMapStyle } from './style/darkStyle';
+import { themeStyleUrls } from './style/themeStyles';
+
+const styleUrl = (import.meta.env.VITE_MAP_STYLE_URL as string | undefined)?.trim();
+const darkStyleUrl = (import.meta.env.VITE_MAP_STYLE_URL_DARK as string | undefined)?.trim();
+const tileUrl = (import.meta.env.VITE_MAP_TILE_URL as string | undefined)?.trim();
+const attribution = (import.meta.env.VITE_MAP_TILE_ATTRIBUTION as string | undefined)?.trim() || '© OpenStreetMap contributors';
+const manifestUrl = (import.meta.env.VITE_MAP_STYLE_MANIFEST_URL as string | undefined)?.trim();
+
+export const configuredMapStyleUrl = styleUrl || undefined;
+export const configuredMapDarkStyleUrl = darkStyleUrl || undefined;
+export const schemePreviewTiles = tileUrl || undefined;
+export const schemePreviewAttribution = attribution;
+export const mapAttribution = attribution;
+
+/** Prefer the versioned MARSHGO style manifest. Raster URL remains a compatibility path for owned tile services. */
+export function createFallbackMapStyle(theme: MapTheme = 'MARSHGO_LIGHT'): StyleSpecification {
+  return buildFallbackStyle(theme, tileUrl, attribution);
+}
+
+/** A configured road/style source is separate from the licensed satellite raster source. */
+export function schemeBasemapConfigured(): boolean { return Boolean(manifestUrl || styleUrl || tileUrl); }
+
+/** Kept for older callers; this only describes the vector/scheme base map. */
+export const mapTilesConfigured = schemeBasemapConfigured;
+
+let darkStyleRequest: Promise<StyleSpecification> | null = null;
+
+function resolveDarkStyle(url: string): Promise<StyleSpecification> {
+  darkStyleRequest ??= fetch(url, { headers: { accept: 'application/json' } })
+    .then(response => {
+      if (!response.ok) throw new Error('MAP_STYLE_UNAVAILABLE');
+      return response.json() as Promise<StyleSpecification>;
+    })
+    .then(style => darkenMapStyle(style))
+    .catch(error => { darkStyleRequest = null; throw error; });
+  return darkStyleRequest;
+}
+
+export async function resolveMapAssets(theme: MapTheme) {
+  if (manifestUrl) {
+    const response = await fetch(manifestUrl, { headers: { accept: 'application/json' } });
+    if (!response.ok) throw new Error('MAP_MANIFEST_UNAVAILABLE');
+    const manifest = parseMapAssetManifest(await response.json());
+    const style = manifest.styles[theme];
+    if (!style) throw new Error('MAP_STYLE_MISSING');
+    return { style, styles: manifest.styles, mapDataVersion: manifest.mapDataVersion, styleVersion: manifest.styleVersion };
+  }
+  const urlStyles = themeStyleUrls(styleUrl, darkStyleUrl);
+  if (urlStyles) {
+    const styles: Partial<Record<MapTheme, string | StyleSpecification>> = { ...urlStyles };
+    if (styleUrl && !darkStyleUrl) {
+      try {
+        styles.MARSHGO_DARK = await resolveDarkStyle(styleUrl);
+      } catch {
+        if (theme === 'MARSHGO_DARK') throw new Error('MAP_STYLE_UNAVAILABLE');
+      }
+    }
+    return { style: styles[theme] ?? createFallbackMapStyle(theme), styles, mapDataVersion: undefined, styleVersion: undefined };
+  }
+  return { style: createFallbackMapStyle(theme), styles: undefined, mapDataVersion: undefined, styleVersion: undefined };
+}

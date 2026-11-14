@@ -1,0 +1,115 @@
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
+import { getTrustedProxyHops, validateRuntimeConfig } from '../server/config';
+
+const validProductionConfig: NodeJS.ProcessEnv = {
+  NODE_ENV: 'production',
+  TRUST_PROXY_HOPS: '1',
+  SESSION_SECRET: 'a'.repeat(64),
+  CORS_ORIGINS: 'https://marshgo.example,capacitor://localhost',
+  SMS_PROVIDER: 'twilio',
+  TWILIO_ACCOUNT_SID: 'ACplaceholder',
+  TWILIO_AUTH_TOKEN: 'test-placeholder',
+  TWILIO_FROM_NUMBER: '+10000000000',
+  OSRM_URL: 'https://router.marshgo.example/route/v1/driving',
+  GEOCODING_ENGINE_URL: 'https://geocoder.marshgo.example/search',
+  GEOCODING_REVERSE_URL: 'https://geocoder.marshgo.example/reverse',
+  MAP_RENDERER: 'maplibre',
+  MAP_DATA_PROVIDER: 'marshgo',
+  ROUTING_PRIMARY: 'osrm',
+  TRAFFIC_PROVIDER: 'none',
+  MAP_STYLE_MANIFEST_URL: 'https://maps.marshgo.example/manifests/style.json',
+  MAP_DATA_MANIFEST_URL: 'https://maps.marshgo.example/manifests/data.json',
+};
+
+describe('runtime production configuration', () => {
+  it('accepts explicit production origins and configured real SMS provider', () => {
+    assert.doesNotThrow(() => validateRuntimeConfig(validProductionConfig));
+  });
+
+  it('allows production email/password auth without SMS credentials when SMS is explicitly disabled', () => {
+    assert.doesNotThrow(() => validateRuntimeConfig({
+      ...validProductionConfig,
+      SMS_PROVIDER: 'disabled',
+      TWILIO_ACCOUNT_SID: undefined,
+      TWILIO_AUTH_TOKEN: undefined,
+      TWILIO_FROM_NUMBER: undefined,
+    }));
+  });
+
+  it('does not apply production restrictions to development', () => {
+    assert.doesNotThrow(() => validateRuntimeConfig({ NODE_ENV: 'development', AUTH_DEV_OTP: 'true' }));
+  });
+
+  it('requires an explicit bounded reverse-proxy hop count in production', () => {
+    assert.throws(() => validateRuntimeConfig({ ...validProductionConfig, TRUST_PROXY_HOPS: undefined }), /TRUST_PROXY_HOPS is required/);
+    for (const value of ['-1', '6', '1.5', 'true']) assert.throws(() => getTrustedProxyHops({ NODE_ENV: 'development', TRUST_PROXY_HOPS: value }), /integer from 0 to 5/);
+    assert.equal(getTrustedProxyHops({ NODE_ENV: 'development' }), 0);
+    assert.equal(getTrustedProxyHops({ NODE_ENV: 'production', TRUST_PROXY_HOPS: '2' }), 2);
+  });
+
+  it('rejects development auth bypass in production', () => {
+    assert.throws(() => validateRuntimeConfig({ ...validProductionConfig, AUTH_DEV_BYPASS: 'true' }), /development authentication/);
+    assert.throws(() => validateRuntimeConfig({ ...validProductionConfig, AUTH_DEV_OTP: 'true' }), /development authentication/);
+  });
+
+  it('rejects unverified SMS providers in production and requires an explicit SMS mode', () => {
+    for (const provider of ['development', 'getotp', '']) {
+      assert.throws(() => validateRuntimeConfig({ ...validProductionConfig, SMS_PROVIDER: provider }), /SMS_PROVIDER must be explicitly set/);
+    }
+    assert.throws(() => validateRuntimeConfig({ ...validProductionConfig, SMS_PROVIDER: undefined }), /SMS_PROVIDER must be explicitly set/);
+  });
+
+  it('requires strong sessions and explicit secure origins, and validates Twilio credentials only when enabled', () => {
+    assert.throws(() => validateRuntimeConfig({ ...validProductionConfig, SESSION_SECRET: 'short' }), /32 bytes/);
+    assert.throws(() => validateRuntimeConfig({ ...validProductionConfig, CORS_ORIGINS: undefined }), /CORS_ORIGINS is required/);
+    assert.throws(() => validateRuntimeConfig({ ...validProductionConfig, CORS_ORIGINS: 'http://localhost:3000' }), /HTTPS web origins/);
+    assert.throws(() => validateRuntimeConfig({ ...validProductionConfig, CORS_ORIGINS: '*' }), /explicit production origins/);
+    assert.throws(() => validateRuntimeConfig({ ...validProductionConfig, TWILIO_AUTH_TOKEN: undefined }), /TWILIO_AUTH_TOKEN is required/);
+  });
+
+  it('fails closed when production map/routing assets or provider settings are incompatible', () => {
+    assert.throws(() => validateRuntimeConfig({ ...validProductionConfig, OSRM_URL: 'http://localhost:5000/route' }), /OSRM_URL must be a public HTTPS URL/);
+    assert.throws(() => validateRuntimeConfig({ ...validProductionConfig, MAP_STYLE_MANIFEST_URL: undefined }), /MAP_STYLE_MANIFEST_URL is required/);
+    assert.throws(() => validateRuntimeConfig({ ...validProductionConfig, ROUTING_PRIMARY: 'here' }), /only configured production routing provider/);
+    assert.throws(() => validateRuntimeConfig({ ...validProductionConfig, HERE_TRAFFIC_ENABLED: 'true' }), /provider adapter is implemented/);
+    assert.throws(() => validateRuntimeConfig({ ...validProductionConfig, TRAFFIC_PROVIDER: 'tomtom' }), /only configured traffic provider/);
+    assert.throws(() => validateRuntimeConfig({ ...validProductionConfig, GEOCODING_PROVIDER: 'unknown' }), /GEOCODING_PROVIDER must be nominatim or photon/);
+  });
+
+  it('fails closed on public demo geocoders in production while allowing an approved Photon endpoint', () => {
+    assert.throws(() => validateRuntimeConfig({
+      ...validProductionConfig,
+      GEOCODING_ENGINE_URL: 'https://nominatim.openstreetmap.org/search',
+    }), /Public Nominatim does not support place autocomplete/);
+    assert.throws(() => validateRuntimeConfig({
+      ...validProductionConfig,
+      GEOCODING_PROVIDER: 'photon',
+      GEOCODING_ENGINE_URL: 'https://photon.komoot.io/api/',
+    }), /must not use the public Photon demo/);
+    assert.throws(() => validateRuntimeConfig({
+      ...validProductionConfig,
+      GEOCODING_PROVIDER: 'photon',
+      GEOCODING_REVERSE_URL: 'https://photon.komoot.io/reverse/',
+    }), /must not use the public Photon demo/);
+    assert.doesNotThrow(() => validateRuntimeConfig({
+      ...validProductionConfig,
+      GEOCODING_PROVIDER: 'photon',
+      GEOCODING_ENGINE_URL: 'https://geocoder.marshgo.example/api/',
+      GEOCODING_REVERSE_URL: 'https://geocoder.marshgo.example/reverse/',
+    }));
+  });
+
+  it('accepts a self-operated pedestrian graph on the private network but never a public plain-HTTP router', () => {
+    for (const url of ['http://marshgo-walk-router:5000/route/v1/foot', 'http://127.0.0.1:5000/route/v1/foot',
+      'http://10.0.5.9:5000/route/v1/foot', 'https://walking.example.com/route/v1/foot']) {
+      validateRuntimeConfig({ ...validProductionConfig, WALKING_ROUTING_URL: url });
+    }
+    assert.throws(() => validateRuntimeConfig({ ...validProductionConfig, WALKING_ROUTING_URL: 'http://walking.example.com/route/v1/foot' }),
+      /WALKING_ROUTING_URL must use HTTPS unless it points at a private-network service/);
+    assert.throws(() => validateRuntimeConfig({ ...validProductionConfig, WALKING_ROUTING_URL: 'http://pass@marshgo-walk-router:5000/route/v1/foot' }),
+      /WALKING_ROUTING_URL must not embed credentials/);
+    assert.throws(() => validateRuntimeConfig({ ...validProductionConfig, WALKING_ROUTING_URL: 'ftp://marshgo-walk-router/route/v1/foot' }),
+      /WALKING_ROUTING_URL must use HTTP or HTTPS/);
+  });
+});

@@ -1,0 +1,657 @@
+{
+  "checkedAt": "2026-10-23T23:22:19.332Z",
+  "summary": {
+    "catalogRows": 43,
+    "checked": 38,
+    "skipped": 5,
+    "healthy": 28,
+    "degraded": 7,
+    "offline": 3,
+    "note": "Read-only probe; HEALTHY means feed health only, not commercial permission, route-search integration, price, availability or booking."
+  },
+  "catalog": [
+    {
+      "city": "Львів",
+      "name": "Львівавтодор — розклад (GTFS)",
+      "sourceType": "gtfs",
+      "state": "HEALTHY",
+      "responseMs": 4175,
+      "counts": {
+        "stops": 1071,
+        "routes": 72,
+        "trips": 15716,
+        "stopTimes": 426685,
+        "routes_bus": 55,
+        "routes_tram": 8,
+        "routes_trolleybus": 9
+      }
+    },
+    {
+      "city": "Львів",
+      "name": "Львівавтодор — realtime позиції (GTFS-RT)",
+      "sourceType": "gtfs_rt",
+      "state": "DEGRADED",
+      "responseMs": 202,
+      "counts": {
+        "vehicles": 0,
+        "tripUpdates": 0,
+        "alerts": 0,
+        "ageSeconds": 2
+      }
+    },
+    {
+      "city": "Львів",
+      "name": "Львівавтодор — затримки (GTFS-RT)",
+      "sourceType": "gtfs_rt",
+      "state": "DEGRADED",
+      "responseMs": 37,
+      "counts": {
+        "vehicles": 0,
+        "tripUpdates": 0,
+        "alerts": 0,
+        "ageSeconds": 18
+      }
+    },
+    {
+      "city": "Стрий",
+      "name": "Стрийська міська рада — розклад (GTFS)",
+      "sourceType": "gtfs",
+      "state": "HEALTHY",
+      "responseMs": 1985,
+      "counts": {
+        "stops": 295,
+        "routes": 34,
+        "trips": 1061,
+        "stopTimes": 13874,
+        "routes_bus": 34
+      }
+    },
+    {
+      "city": "Ужгород",
+      "name": "Ужгородська міська рада — розклад (GTFS)",
+      "sourceType": "gtfs",
+      "state": "HEALTHY",
+      "responseMs": 425,
+      "counts": {
+        "stops": 217,
+        "routes": 18,
+        "trips": 2376,
+        "stopTimes": 46460,
+        "routes_bus": 18
+      }
+    },
+    {
+      "city": "Україна",
+      "name": "inbus.ua — розклад (GTFS)",
+      "sourceType": "gtfs",
+      "state": "OFFLINE",
+      "responseMs": 387,
+      "counts": {
+        "stops": 2,
+        "routes": 1,
+        "trips": 45,
+        "stopTimes": 90,
+        "routes_bus": 1
+      }
+    },
+    {
+      "city": "Київ",
+      "name": "Київ — розклад (GTFS)",
+      "sourceType": "gtfs",
+      "state": "SKIPPED",
+      "responseMs": null,
+      "counts": null
+    },
+    {
+      "city": "Київ",
+      "name": "Київ — realtime (GTFS-RT)",
+      "sourceType": "gtfs_rt",
+      "state": "SKIPPED",
+      "responseMs": null,
+      "counts": null
+    },
+    {
+      "city": "Одеса",
+      "name": "Одеса — розклад (GTFS)",
+      "sourceType": "gtfs",
+      "state": "SKIPPED",
+      "responseMs": null,
+      "counts": null
+    },
+    {
+      "city": "Буча",
+      "name": "КП «Бучатранссервіс» — розклад (GTFS)",
+      "sourceType": "gtfs",
+      "state": "SKIPPED",
+      "responseMs": null,
+      "counts": null
+    },
+    {
+      "city": "Рівне",
+      "name": "Рівне — розклад (GTFS, Dozor)",
+      "sourceType": "gtfs",
+      "state": "HEALTHY",
+      "responseMs": 294,
+      "counts": {
+        "stops": 82,
+        "routes": 3,
+        "trips": 608,
+        "stopTimes": 11164,
+        "routes_bus": 3
+      }
+    },
+    {
+      "city": "Рівне",
+      "name": "Рівне — позиції (GTFS-RT, Dozor)",
+      "sourceType": "gtfs_rt",
+      "state": "HEALTHY",
+      "responseMs": 203,
+      "counts": {
+        "vehicles": 2,
+        "tripUpdates": 0,
+        "alerts": 0,
+        "ageSeconds": 2
+      }
+    },
+    {
+      "city": "Івано-Франківськ",
+      "name": "Івано-Франківськ — розклад (GTFS, Dozor)",
+      "sourceType": "gtfs",
+      "state": "HEALTHY",
+      "responseMs": 643,
+      "counts": {
+        "stops": 288,
+        "routes": 21,
+        "trips": 2115,
+        "stopTimes": 41692,
+        "routes_bus": 20,
+        "routes_trolleybus": 1
+      }
+    },
+    {
+      "city": "Івано-Франківськ",
+      "name": "Івано-Франківськ — позиції (GTFS-RT, Dozor)",
+      "sourceType": "gtfs_rt",
+      "state": "DEGRADED",
+      "responseMs": 27,
+      "counts": {
+        "vehicles": 11,
+        "tripUpdates": 0,
+        "alerts": 0,
+        "ageSeconds": 9
+      }
+    },
+    {
+      "city": "Ужгород",
+      "name": "Ужгород — позиції (GTFS-RT, Dozor)",
+      "sourceType": "gtfs_rt",
+      "state": "HEALTHY",
+      "responseMs": 104,
+      "counts": {
+        "vehicles": 3,
+        "tripUpdates": 0,
+        "alerts": 0,
+        "ageSeconds": 14
+      }
+    },
+    {
+      "city": "Ужгород",
+      "name": "Ужгород — розклад (GTFS, Dozor)",
+      "sourceType": "gtfs",
+      "state": "HEALTHY",
+      "responseMs": 100,
+      "counts": {
+        "stops": 120,
+        "routes": 9,
+        "trips": 965,
+        "stopTimes": 15655,
+        "routes_bus": 9
+      }
+    },
+    {
+      "city": "Стрий",
+      "name": "Стрий — позиції (GTFS-RT)",
+      "sourceType": "gtfs_rt",
+      "state": "DEGRADED",
+      "responseMs": 33,
+      "counts": {
+        "vehicles": 0,
+        "tripUpdates": 0,
+        "alerts": 0,
+        "ageSeconds": 6
+      }
+    },
+    {
+      "city": "Трускавець",
+      "name": "Трускавець — позиції (GTFS-RT)",
+      "sourceType": "gtfs_rt",
+      "state": "DEGRADED",
+      "responseMs": 32,
+      "counts": {
+        "vehicles": 0,
+        "tripUpdates": 0,
+        "alerts": 0,
+        "ageSeconds": 1
+      }
+    },
+    {
+      "city": "Чорноморськ",
+      "name": "Чорноморськ — розклад (GTFS)",
+      "sourceType": "gtfs",
+      "state": "OFFLINE",
+      "responseMs": 431,
+      "counts": {
+        "stops": 152,
+        "routes": 6,
+        "trips": 16,
+        "stopTimes": 406,
+        "routes_bus": 6
+      }
+    },
+    {
+      "city": "Червоноград",
+      "name": "Червоноград — позиції (EasyWay JSON)",
+      "sourceType": "json",
+      "state": "HEALTHY",
+      "responseMs": 269,
+      "counts": {
+        "vehicles": 11,
+        "vehicles_bus": 6,
+        "vehicles_marshrutka": 5,
+        "ageSeconds": 44
+      }
+    },
+    {
+      "city": "Конотоп",
+      "name": "Конотоп — позиції (EasyWay JSON)",
+      "sourceType": "json",
+      "state": "DEGRADED",
+      "responseMs": 64,
+      "counts": {}
+    },
+    {
+      "city": "Ужгород",
+      "name": "Ужгород — позиції (Dozor JSON)",
+      "sourceType": "json",
+      "state": "HEALTHY",
+      "responseMs": 70,
+      "counts": {
+        "vehicles": 52,
+        "vehicles_bus": 52
+      }
+    },
+    {
+      "city": "Івано-Франківськ",
+      "name": "Івано-Франківськ — позиції (Dozor JSON)",
+      "sourceType": "json",
+      "state": "HEALTHY",
+      "responseMs": 83,
+      "counts": {
+        "vehicles": 55,
+        "vehicles_bus": 55
+      }
+    },
+    {
+      "city": "Дніпро",
+      "name": "Дніпро — позиції (iCity JSON)",
+      "sourceType": "json",
+      "state": "DEGRADED",
+      "responseMs": 1034,
+      "counts": {
+        "vehicles": 218,
+        "vehicles_bus": 218,
+        "ageSeconds": 1
+      }
+    },
+    {
+      "city": "Суми",
+      "name": "Суми — позиції (GTFS-RT)",
+      "sourceType": "gtfs_rt",
+      "state": "SKIPPED",
+      "responseMs": null,
+      "counts": null
+    },
+    {
+      "city": "Полтава",
+      "name": "Полтава — позиції (EasyWay JSON)",
+      "sourceType": "json",
+      "state": "HEALTHY",
+      "responseMs": 112,
+      "counts": {
+        "vehicles": 132,
+        "vehicles_marshrutka": 119,
+        "vehicles_bus": 13,
+        "ageSeconds": 1054
+      }
+    },
+    {
+      "city": "Україна",
+      "name": "VD-Express — міжміські автобуси (GTFS)",
+      "sourceType": "gtfs",
+      "state": "HEALTHY",
+      "responseMs": 1128,
+      "counts": {
+        "stops": 37,
+        "routes": 2,
+        "trips": 2,
+        "stopTimes": 72,
+        "routes_bus": 2
+      }
+    },
+    {
+      "city": "Україна",
+      "name": "Укрзалізниця — розклад поїздів (GTFS)",
+      "sourceType": "gtfs",
+      "state": "HEALTHY",
+      "responseMs": 9648,
+      "counts": {
+        "stops": 167,
+        "routes": 122,
+        "trips": 122,
+        "stopTimes": 1251,
+        "routes_train": 119,
+        "routes_suburban": 3
+      }
+    },
+    {
+      "city": "Київ",
+      "name": "Київпастранс — розклад (GTFS)",
+      "sourceType": "gtfs",
+      "state": "HEALTHY",
+      "responseMs": 7122,
+      "counts": {
+        "stops": 1513,
+        "routes": 163,
+        "trips": 24253,
+        "stopTimes": 103837,
+        "routes_tram": 17,
+        "routes_trolleybus": 44,
+        "routes_bus": 102
+      }
+    },
+    {
+      "city": "Кам’янець-Подільський",
+      "name": "Кам’янець-Подільський — розклад (GTFS, Dozor)",
+      "sourceType": "gtfs",
+      "state": "HEALTHY",
+      "responseMs": 365,
+      "counts": {
+        "stops": 190,
+        "routes": 8,
+        "trips": 1592,
+        "stopTimes": 38029,
+        "routes_bus": 8
+      }
+    },
+    {
+      "city": "Кам’янець-Подільський",
+      "name": "Кам’янець-Подільський — позиції (Dozor JSON)",
+      "sourceType": "json",
+      "state": "HEALTHY",
+      "responseMs": 169,
+      "counts": {
+        "vehicles": 138,
+        "vehicles_bus": 138
+      }
+    },
+    {
+      "city": "Біла Церква",
+      "name": "Біла Церква — розклад (GTFS, Dozor)",
+      "sourceType": "gtfs",
+      "state": "HEALTHY",
+      "responseMs": 42,
+      "counts": {
+        "stops": 342,
+        "routes": 18,
+        "trips": 189,
+        "stopTimes": 5451,
+        "routes_bus": 18
+      }
+    },
+    {
+      "city": "Біла Церква",
+      "name": "Біла Церква — позиції (Dozor JSON)",
+      "sourceType": "json",
+      "state": "HEALTHY",
+      "responseMs": 293,
+      "counts": {
+        "vehicles": 128,
+        "vehicles_bus": 128
+      }
+    },
+    {
+      "city": "Хмельницький",
+      "name": "Хмельницький — розклад (GTFS, Dozor)",
+      "sourceType": "gtfs",
+      "state": "OFFLINE",
+      "responseMs": 26,
+      "counts": {
+        "stops": 0,
+        "routes": 0,
+        "trips": 0,
+        "stopTimes": 0
+      }
+    },
+    {
+      "city": "Олександрія",
+      "name": "Олександрія — розклад (GTFS, Dozor)",
+      "sourceType": "gtfs",
+      "state": "HEALTHY",
+      "responseMs": 38,
+      "counts": {
+        "stops": 47,
+        "routes": 2,
+        "trips": 36,
+        "stopTimes": 612,
+        "routes_bus": 2
+      }
+    },
+    {
+      "city": "Олександрія",
+      "name": "Олександрія — позиції (Dozor JSON)",
+      "sourceType": "json",
+      "state": "HEALTHY",
+      "responseMs": 20,
+      "counts": {
+        "vehicles": 2,
+        "vehicles_bus": 2
+      }
+    },
+    {
+      "city": "Київ",
+      "name": "Київ — маршрутки (офіційна геометрія)",
+      "sourceType": "geojson",
+      "state": "HEALTHY",
+      "responseMs": 1466,
+      "counts": {
+        "features": 2000,
+        "routes_marshrutka": 127
+      }
+    },
+    {
+      "city": "Київ",
+      "name": "Київ — метро (геометрія ліній)",
+      "sourceType": "geojson",
+      "state": "HEALTHY",
+      "responseMs": 384,
+      "counts": {
+        "features": 98,
+        "routes_metro": 6
+      }
+    },
+    {
+      "city": "Київ",
+      "name": "Київ — метро (станції)",
+      "sourceType": "geojson",
+      "state": "HEALTHY",
+      "responseMs": 543,
+      "counts": {
+        "features": 52,
+        "stops_metro": 52
+      }
+    },
+    {
+      "city": "Київ",
+      "name": "Київ — міська електричка (геометрія)",
+      "sourceType": "geojson",
+      "state": "HEALTHY",
+      "responseMs": 1021,
+      "counts": {
+        "features": 96,
+        "routes_city_train": 8
+      }
+    },
+    {
+      "city": "Київ",
+      "name": "Київ — міська електричка (станції)",
+      "sourceType": "geojson",
+      "state": "HEALTHY",
+      "responseMs": 868,
+      "counts": {
+        "features": 34,
+        "stops_city_train": 34
+      }
+    },
+    {
+      "city": "Київ",
+      "name": "Київ — фунікулер (геометрія)",
+      "sourceType": "geojson",
+      "state": "HEALTHY",
+      "responseMs": 408,
+      "counts": {
+        "features": 2,
+        "routes_funicular": 2
+      }
+    },
+    {
+      "city": "Київ",
+      "name": "Київ — фунікулер (станції)",
+      "sourceType": "geojson",
+      "state": "HEALTHY",
+      "responseMs": 410,
+      "counts": {
+        "features": 2,
+        "stops_funicular": 2
+      }
+    }
+  ],
+  "earlyWindowRouteProbe": {
+    "provider": "Львівавтодор GTFS → MARSHGO GTFS timetable planner",
+    "feed": {
+      "stops": 1071,
+      "routes": 72,
+      "trips": 15716,
+      "timezone": "Europe/Kyiv"
+    },
+    "queryWindow": [
+      "2026-10-24T00:22:18.046Z",
+      "2026-10-24T01:52:18.046Z"
+    ],
+    "cases": [
+      {
+        "id": "center-to-main-station",
+        "status": "NO_ROUTE_IN_QUERY_WINDOW",
+        "count": 0,
+        "searchTruncated": true,
+        "resultLimitReached": false
+      },
+      {
+        "id": "north-to-sykhiv",
+        "status": "NO_ROUTE_IN_QUERY_WINDOW",
+        "count": 0,
+        "searchTruncated": true,
+        "resultLimitReached": false
+      }
+    ],
+    "note": "03:22–04:52 Europe/Kyiv, before normal service; not used to judge daytime route availability."
+  },
+  "daytimeRouteReplay": {
+    "sourceCheckout": "MarshGO-Server feature/transport-layer-availability at 182c77ae4f78d576a287007d8d0864fb130f43f8 plus its pre-existing dirty changes",
+    "feed": "Lviv public GTFS, re-fetched read-only for this run",
+    "queryWindow": [
+      "2026-10-24T08:00:00+03:00",
+      "2026-10-24T09:30:00+03:00"
+    ],
+    "maximumTransfers": 2,
+    "stopRadiusMeters": 2500,
+    "limit": 100,
+    "cases": [
+      {
+        "id": "center-to-main-station",
+        "count": 100,
+        "searchTruncated": true,
+        "resultLimitReached": true,
+        "elapsedMs": 1982,
+        "sampleRouteIds": [
+          "1627",
+          "1631",
+          "97"
+        ],
+        "sampleFares": "not supplied by feed"
+      },
+      {
+        "id": "north-to-sykhiv",
+        "count": 100,
+        "searchTruncated": true,
+        "resultLimitReached": true,
+        "elapsedMs": 4237,
+        "sampleRouteIds": [
+          "102",
+          "903",
+          "1062"
+        ],
+        "sampleFares": "not supplied by feed"
+      }
+    ]
+  },
+  "supplementary": [
+    {
+      "provider": "CityBikes discovery",
+      "state": "PROBED",
+      "counts": null,
+      "bbox": null,
+      "role": "catalog-only"
+    },
+    {
+      "provider": "Zelectra GBFS candidate",
+      "state": "DEGRADED",
+      "counts": {
+        "feeds": 9,
+        "vehicles": 869,
+        "stations": 0,
+        "ageSeconds": 0
+      },
+      "bbox": [
+        -77.05929166666667,
+        -12.048378333333336,
+        30.56776166666667,
+        50.474925
+      ],
+      "role": "nearby inventory candidate; route/booking rules unverified"
+    },
+    {
+      "provider": "Nextbike nextbike_lv candidate",
+      "state": "DEGRADED",
+      "counts": {
+        "feeds": 9,
+        "vehicles": 0,
+        "stations": 44,
+        "ageSeconds": 42
+      },
+      "bbox": [
+        24.010223,
+        56.897209,
+        24.252212,
+        57.021183
+      ],
+      "role": "coverage candidate; city assignment must be checked against coordinates"
+    },
+    {
+      "provider": "Nextbike nextbike_vin candidate",
+      "state": "OFFLINE",
+      "counts": {},
+      "bbox": null,
+      "role": "candidate URL probe; not an enabled Ukrainian source"
+    }
+  ]
+}

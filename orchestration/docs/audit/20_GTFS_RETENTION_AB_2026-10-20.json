@@ -1,0 +1,131 @@
+{
+  "fetchedAt": "2026-10-20T00:16:05.038Z",
+  "source": "https://track.ua-gis.com/gtfs/lviv/static.zip",
+  "feedBytes": 3755976,
+  "feedSha256": "bb4ac0ce9127b4967ad889379f523b04b84a0bb033814aa8c844526b42078164",
+  "baseSha": "751d83aedadf9b46b48b3d7e8103475cc058ffff",
+  "candidateSha": "fe961d297b26e6ba1d63c3f409d20818aca1da75",
+  "localWindow": "2026-10-21 08:00–09:30 Europe/Kyiv",
+  "cases": [
+    {
+      "id": "north-to-sykhiv",
+      "query": {
+        "origin": [
+          24.0029933,
+          49.8681678
+        ],
+        "destination": [
+          24.057585,
+          49.794117
+        ]
+      },
+      "baseline": {
+        "elapsedMs": 3261,
+        "resultCount": 100,
+        "searchTruncated": true,
+        "candidateGraphTruncated": true,
+        "resultLimitReached": true,
+        "legs": {
+          "1": 0,
+          "2": 77,
+          "3": 23,
+          "4": 0
+        },
+        "bestDurationSeconds": 4128,
+        "bestKnownFareMinor": 2300
+      },
+      "candidate": {
+        "elapsedMs": 3393,
+        "resultCount": 100,
+        "searchTruncated": true,
+        "candidateGraphTruncated": true,
+        "resultLimitReached": true,
+        "legs": {
+          "1": 0,
+          "2": 77,
+          "3": 23,
+          "4": 0
+        },
+        "bestDurationSeconds": 4128,
+        "bestKnownFareMinor": 2300
+      },
+      "repeatedElapsedMs": {
+        "baseline": [
+          3221,
+          3339,
+          3261
+        ],
+        "candidate": [
+          3393,
+          3242,
+          3396
+        ]
+      },
+      "comparison": {
+        "added": 0,
+        "removed": 0,
+        "identicalOrderedIds": true
+      }
+    },
+    {
+      "id": "center-to-main-station",
+      "query": {
+        "origin": [
+          24.0297,
+          49.8397
+        ],
+        "destination": [
+          23.9893,
+          49.8397
+        ]
+      },
+      "baseline": {
+        "elapsedMs": 2754,
+        "resultCount": 100,
+        "searchTruncated": true,
+        "candidateGraphTruncated": true,
+        "resultLimitReached": true,
+        "legs": {
+          "1": 41,
+          "2": 54,
+          "3": 4,
+          "4": 1
+        },
+        "bestDurationSeconds": 1740,
+        "bestKnownFareMinor": 2300
+      },
+      "candidate": {
+        "elapsedMs": 2843,
+        "resultCount": 100,
+        "searchTruncated": true,
+        "candidateGraphTruncated": true,
+        "resultLimitReached": true,
+        "legs": {
+          "1": 41,
+          "2": 54,
+          "3": 4,
+          "4": 1
+        },
+        "bestDurationSeconds": 1740,
+        "bestKnownFareMinor": 2300
+      },
+      "repeatedElapsedMs": {
+        "baseline": [
+          2754,
+          2858,
+          2580
+        ],
+        "candidate": [
+          2689,
+          2843,
+          2870
+        ]
+      },
+      "comparison": {
+        "added": 0,
+        "removed": 0,
+        "identicalOrderedIds": true
+      }
+    }
+  ]
+}

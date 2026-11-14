@@ -1,0 +1,684 @@
+{
+  "fetchedAt": "2026-10-20T00:44:05.940Z",
+  "source": "https://track.ua-gis.com/gtfs/lviv/static.zip",
+  "feedBytes": 3755976,
+  "feedSha256": "bb4ac0ce9127b4967ad889379f523b04b84a0bb033814aa8c844526b42078164",
+  "baselineSha": "751d83aedadf9b46b48b3d7e8103475cc058ffff",
+  "candidateSha": "1a3598cc270af0d353a2b22cda740f81daa0da73",
+  "window": "2026-10-21 08:00-09:30 Europe/Kyiv",
+  "feed": {
+    "stops": 1057,
+    "routes": 72,
+    "trips": 15694
+  },
+  "cases": [
+    {
+      "id": "north-to-sykhiv",
+      "query": {
+        "origin": [
+          24.0029933,
+          49.8681678
+        ],
+        "destination": [
+          24.057585,
+          49.794117
+        ],
+        "localWindow": "2026-10-21 08:00 + 90 min"
+      },
+      "baseline": {
+        "elapsedMs": 2329,
+        "count": 100,
+        "searchTruncated": true,
+        "candidateGraphTruncated": true,
+        "resultLimitReached": true,
+        "legCounts": {
+          "1": 14,
+          "2": 71,
+          "3": 15,
+          "4": 0
+        },
+        "bestDurationSeconds": 4128,
+        "bestKnownFareMinor": 2300,
+        "objectiveSample": [
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:31183_1_0:canonical-stop-190:canonical-stop-334:1792559880000:1792562340000|lviv-static-ab:20261021:lviv-static-ab:31869_0_1:canonical-stop-334:canonical-stop-337:1792562520000:1792562880000",
+            4128,
+            4600
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:31183_1_0:canonical-stop-663:canonical-stop-330:1792559400000:1792561860000|lviv-static-ab:20261021:lviv-static-ab:31869_0_1:canonical-stop-330:canonical-stop-337:1792562040000:1792562880000",
+            4128,
+            4600
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:31183_1_0:canonical-stop-663:canonical-stop-59:1792559400000:1792560120000|lviv-static-ab:20261021:lviv-static-ab:32825_0_1:canonical-stop-59:canonical-stop-514:1792560300000:1792562700000",
+            4299,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:31183_1_0:canonical-stop-663:canonical-stop-60:1792559400000:1792560240000|lviv-static-ab:20261021:lviv-static-ab:32825_0_1:canonical-stop-60:canonical-stop-514:1792560420000:1792562700000",
+            4299,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:31761_0_1:canonical-stop-189:canonical-stop-191:1792559640000:1792559880000|lviv-static-ab:20261021:lviv-static-ab:32825_0_1:canonical-stop-59:canonical-stop-514:1792560300000:1792562700000",
+            4299,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:31761_0_1:canonical-stop-189:canonical-stop-59:1792559640000:1792560000000|lviv-static-ab:20261021:lviv-static-ab:32825_0_1:canonical-stop-59:canonical-stop-514:1792560300000:1792562700000",
+            4299,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:31781_0_1:canonical-stop-189:canonical-stop-191:1792559640000:1792559880000|lviv-static-ab:20261021:lviv-static-ab:32825_0_1:canonical-stop-59:canonical-stop-514:1792560300000:1792562700000",
+            4299,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:31781_0_1:canonical-stop-189:canonical-stop-59:1792559640000:1792560000000|lviv-static-ab:20261021:lviv-static-ab:32825_0_1:canonical-stop-59:canonical-stop-514:1792560300000:1792562700000",
+            4299,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:32098_0_1:canonical-stop-189:canonical-stop-105:1792559700000:1792560600000|lviv-static-ab:20261021:lviv-static-ab:32825_0_1:canonical-stop-105:canonical-stop-514:1792560780000:1792562700000",
+            4299,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:32098_0_1:canonical-stop-328:canonical-stop-105:1792559460000:1792560600000|lviv-static-ab:20261021:lviv-static-ab:32825_0_1:canonical-stop-105:canonical-stop-514:1792560780000:1792562700000",
+            4299,
+            2300
+          ]
+        ]
+      },
+      "candidate": {
+        "elapsedMs": 2453,
+        "count": 100,
+        "searchTruncated": true,
+        "candidateGraphTruncated": true,
+        "resultLimitReached": true,
+        "legCounts": {
+          "1": 14,
+          "2": 71,
+          "3": 15,
+          "4": 0
+        },
+        "bestDurationSeconds": 4128,
+        "bestKnownFareMinor": 2300,
+        "objectiveSample": [
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:31183_1_0:canonical-stop-190:canonical-stop-334:1792559880000:1792562340000|lviv-static-ab:20261021:lviv-static-ab:31869_0_1:canonical-stop-334:canonical-stop-337:1792562520000:1792562880000",
+            4128,
+            4600
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:31183_1_0:canonical-stop-663:canonical-stop-330:1792559400000:1792561860000|lviv-static-ab:20261021:lviv-static-ab:31869_0_1:canonical-stop-330:canonical-stop-337:1792562040000:1792562880000",
+            4128,
+            4600
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:31183_1_0:canonical-stop-663:canonical-stop-59:1792559400000:1792560120000|lviv-static-ab:20261021:lviv-static-ab:32825_0_1:canonical-stop-59:canonical-stop-514:1792560300000:1792562700000",
+            4299,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:31183_1_0:canonical-stop-663:canonical-stop-60:1792559400000:1792560240000|lviv-static-ab:20261021:lviv-static-ab:32825_0_1:canonical-stop-60:canonical-stop-514:1792560420000:1792562700000",
+            4299,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:31761_0_1:canonical-stop-189:canonical-stop-191:1792559640000:1792559880000|lviv-static-ab:20261021:lviv-static-ab:32825_0_1:canonical-stop-59:canonical-stop-514:1792560300000:1792562700000",
+            4299,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:31761_0_1:canonical-stop-189:canonical-stop-59:1792559640000:1792560000000|lviv-static-ab:20261021:lviv-static-ab:32825_0_1:canonical-stop-59:canonical-stop-514:1792560300000:1792562700000",
+            4299,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:31781_0_1:canonical-stop-189:canonical-stop-191:1792559640000:1792559880000|lviv-static-ab:20261021:lviv-static-ab:32825_0_1:canonical-stop-59:canonical-stop-514:1792560300000:1792562700000",
+            4299,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:31781_0_1:canonical-stop-189:canonical-stop-59:1792559640000:1792560000000|lviv-static-ab:20261021:lviv-static-ab:32825_0_1:canonical-stop-59:canonical-stop-514:1792560300000:1792562700000",
+            4299,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:32098_0_1:canonical-stop-189:canonical-stop-105:1792559700000:1792560600000|lviv-static-ab:20261021:lviv-static-ab:32825_0_1:canonical-stop-105:canonical-stop-514:1792560780000:1792562700000",
+            4299,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:32098_0_1:canonical-stop-328:canonical-stop-105:1792559460000:1792560600000|lviv-static-ab:20261021:lviv-static-ab:32825_0_1:canonical-stop-105:canonical-stop-514:1792560780000:1792562700000",
+            4299,
+            2300
+          ]
+        ]
+      },
+      "repeatedElapsedMs": {
+        "baseline": [
+          2480,
+          2402,
+          2329
+        ],
+        "candidate": [
+          2466,
+          2381,
+          2453
+        ]
+      },
+      "comparison": {
+        "added": 0,
+        "removed": 0,
+        "identicalOrderedIds": true,
+        "addedExamples": [],
+        "removedExamples": []
+      }
+    },
+    {
+      "id": "center-to-main-station",
+      "query": {
+        "origin": [
+          24.0297,
+          49.8397
+        ],
+        "destination": [
+          23.9893,
+          49.8397
+        ],
+        "localWindow": "2026-10-21 08:00 + 90 min"
+      },
+      "baseline": {
+        "elapsedMs": 2178,
+        "count": 100,
+        "searchTruncated": true,
+        "candidateGraphTruncated": true,
+        "resultLimitReached": true,
+        "legCounts": {
+          "1": 55,
+          "2": 43,
+          "3": 0,
+          "4": 2
+        },
+        "bestDurationSeconds": 1740,
+        "bestKnownFareMinor": 2300,
+        "objectiveSample": [
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:30248_0_1:canonical-stop-63:canonical-stop-68:1792559340000:1792560060000",
+            1740,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:31687_0_1:canonical-stop-63:canonical-stop-68:1792559340000:1792560060000",
+            1740,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:29706_1_1:canonical-stop-109:canonical-stop-390:1792559400000:1792560300000",
+            1829,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:29706_1_1:canonical-stop-63:canonical-stop-390:1792559520000:1792560300000",
+            1829,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:31803_0_1:canonical-stop-109:canonical-stop-356:1792559280000:1792560000000",
+            1844,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:31803_0_1:canonical-stop-63:canonical-stop-356:1792559400000:1792560000000",
+            1844,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:31687_0_1:canonical-stop-63:canonical-stop-246:1792559340000:1792560180000",
+            1851,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:30800_0_1:canonical-stop-109:canonical-stop-68:1792559280000:1792560180000",
+            1860,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:31759_0_1:canonical-stop-63:canonical-stop-68:1792559460000:1792560180000",
+            1860,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:31779_0_1:canonical-stop-63:canonical-stop-68:1792559460000:1792560180000",
+            1860,
+            2300
+          ]
+        ]
+      },
+      "candidate": {
+        "elapsedMs": 2348,
+        "count": 100,
+        "searchTruncated": true,
+        "candidateGraphTruncated": true,
+        "resultLimitReached": true,
+        "legCounts": {
+          "1": 55,
+          "2": 43,
+          "3": 0,
+          "4": 2
+        },
+        "bestDurationSeconds": 1740,
+        "bestKnownFareMinor": 2300,
+        "objectiveSample": [
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:30248_0_1:canonical-stop-63:canonical-stop-68:1792559340000:1792560060000",
+            1740,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:31687_0_1:canonical-stop-63:canonical-stop-68:1792559340000:1792560060000",
+            1740,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:29706_1_1:canonical-stop-109:canonical-stop-390:1792559400000:1792560300000",
+            1829,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:29706_1_1:canonical-stop-63:canonical-stop-390:1792559520000:1792560300000",
+            1829,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:31803_0_1:canonical-stop-109:canonical-stop-356:1792559280000:1792560000000",
+            1844,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:31803_0_1:canonical-stop-63:canonical-stop-356:1792559400000:1792560000000",
+            1844,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:31687_0_1:canonical-stop-63:canonical-stop-246:1792559340000:1792560180000",
+            1851,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:30800_0_1:canonical-stop-109:canonical-stop-68:1792559280000:1792560180000",
+            1860,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:31759_0_1:canonical-stop-63:canonical-stop-68:1792559460000:1792560180000",
+            1860,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:31779_0_1:canonical-stop-63:canonical-stop-68:1792559460000:1792560180000",
+            1860,
+            2300
+          ]
+        ]
+      },
+      "repeatedElapsedMs": {
+        "baseline": [
+          2308,
+          2339,
+          2178
+        ],
+        "candidate": [
+          2308,
+          2312,
+          2348
+        ]
+      },
+      "comparison": {
+        "added": 0,
+        "removed": 0,
+        "identicalOrderedIds": true,
+        "addedExamples": [],
+        "removedExamples": []
+      }
+    },
+    {
+      "id": "north-to-railway-station",
+      "query": {
+        "origin": [
+          24.0029933,
+          49.8681678
+        ],
+        "destination": [
+          23.9893,
+          49.8397
+        ],
+        "localWindow": "2026-10-21 08:00 + 30 min"
+      },
+      "baseline": {
+        "elapsedMs": 2126,
+        "count": 100,
+        "searchTruncated": true,
+        "candidateGraphTruncated": true,
+        "resultLimitReached": true,
+        "legCounts": {
+          "1": 24,
+          "2": 49,
+          "3": 27,
+          "4": 0
+        },
+        "bestDurationSeconds": 2187,
+        "bestKnownFareMinor": 2300,
+        "objectiveSample": [
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:32786_0_1:canonical-stop-296:canonical-stop-301:1792559280000:1792559700000",
+            2187,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:32786_0_1:canonical-stop-296:canonical-stop-302:1792559280000:1792559820000",
+            2316,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:32786_0_1:canonical-stop-296:canonical-stop-301:1792559280000:1792559700000|lviv-static-ab:20261021:lviv-static-ab:30620_0_1:canonical-stop-322:canonical-stop-437:1792560000000:1792560480000",
+            2323,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:32786_0_1:canonical-stop-296:canonical-stop-301:1792559280000:1792559700000|lviv-static-ab:20261021:lviv-static-ab:30620_0_1:canonical-stop-322:canonical-stop-438:1792560000000:1792560600000",
+            2336,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:32786_0_1:canonical-stop-296:canonical-stop-301:1792559280000:1792559700000|lviv-static-ab:20261021:lviv-static-ab:27491_1_0:canonical-stop-121:canonical-stop-123:1792559940000:1792560300000",
+            2433,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:32084_0_0:canonical-stop-295:canonical-stop-301:1792559400000:1792560120000",
+            2607,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:32084_0_0:canonical-stop-296:canonical-stop-301:1792559520000:1792560120000",
+            2607,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:32786_0_1:canonical-stop-296:canonical-stop-297:1792559280000:1792559340000|lviv-static-ab:20261021:lviv-static-ab:32084_0_0:canonical-stop-297:canonical-stop-301:1792559640000:1792560120000",
+            2607,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:32786_0_1:canonical-stop-296:canonical-stop-298:1792559280000:1792559400000|lviv-static-ab:20261021:lviv-static-ab:32084_0_0:canonical-stop-298:canonical-stop-301:1792559760000:1792560120000",
+            2607,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:32786_0_1:canonical-stop-296:canonical-stop-301:1792559280000:1792559700000|lviv-static-ab:20261021:lviv-static-ab:32079_0_1:canonical-stop-322:canonical-stop-323:1792560000000:1792560120000",
+            2609,
+            2300
+          ]
+        ]
+      },
+      "candidate": {
+        "elapsedMs": 2172,
+        "count": 100,
+        "searchTruncated": true,
+        "candidateGraphTruncated": true,
+        "resultLimitReached": true,
+        "legCounts": {
+          "1": 24,
+          "2": 49,
+          "3": 27,
+          "4": 0
+        },
+        "bestDurationSeconds": 2187,
+        "bestKnownFareMinor": 2300,
+        "objectiveSample": [
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:32786_0_1:canonical-stop-296:canonical-stop-301:1792559280000:1792559700000",
+            2187,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:32786_0_1:canonical-stop-296:canonical-stop-302:1792559280000:1792559820000",
+            2316,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:32786_0_1:canonical-stop-296:canonical-stop-301:1792559280000:1792559700000|lviv-static-ab:20261021:lviv-static-ab:30620_0_1:canonical-stop-322:canonical-stop-437:1792560000000:1792560480000",
+            2323,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:32786_0_1:canonical-stop-296:canonical-stop-301:1792559280000:1792559700000|lviv-static-ab:20261021:lviv-static-ab:30620_0_1:canonical-stop-322:canonical-stop-438:1792560000000:1792560600000",
+            2336,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:32786_0_1:canonical-stop-296:canonical-stop-301:1792559280000:1792559700000|lviv-static-ab:20261021:lviv-static-ab:27491_1_0:canonical-stop-121:canonical-stop-123:1792559940000:1792560300000",
+            2433,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:32084_0_0:canonical-stop-295:canonical-stop-301:1792559400000:1792560120000",
+            2607,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:32084_0_0:canonical-stop-296:canonical-stop-301:1792559520000:1792560120000",
+            2607,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:32786_0_1:canonical-stop-296:canonical-stop-297:1792559280000:1792559340000|lviv-static-ab:20261021:lviv-static-ab:32084_0_0:canonical-stop-297:canonical-stop-301:1792559640000:1792560120000",
+            2607,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:32786_0_1:canonical-stop-296:canonical-stop-298:1792559280000:1792559400000|lviv-static-ab:20261021:lviv-static-ab:32084_0_0:canonical-stop-298:canonical-stop-301:1792559760000:1792560120000",
+            2607,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:32786_0_1:canonical-stop-296:canonical-stop-301:1792559280000:1792559700000|lviv-static-ab:20261021:lviv-static-ab:32079_0_1:canonical-stop-322:canonical-stop-323:1792560000000:1792560120000",
+            2609,
+            2300
+          ]
+        ]
+      },
+      "repeatedElapsedMs": {
+        "baseline": [
+          2167,
+          2010,
+          2126
+        ],
+        "candidate": [
+          2154,
+          2082,
+          2172
+        ]
+      },
+      "comparison": {
+        "added": 0,
+        "removed": 0,
+        "identicalOrderedIds": true,
+        "addedExamples": [],
+        "removedExamples": []
+      }
+    },
+    {
+      "id": "center-to-sykhiv",
+      "query": {
+        "origin": [
+          24.0297,
+          49.8397
+        ],
+        "destination": [
+          24.057585,
+          49.794117
+        ],
+        "localWindow": "2026-10-21 08:00 + 30 min"
+      },
+      "baseline": {
+        "elapsedMs": 2083,
+        "count": 100,
+        "searchTruncated": true,
+        "candidateGraphTruncated": true,
+        "resultLimitReached": true,
+        "legCounts": {
+          "1": 24,
+          "2": 69,
+          "3": 7,
+          "4": 0
+        },
+        "bestDurationSeconds": 2024,
+        "bestKnownFareMinor": 2300,
+        "objectiveSample": [
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:27754_1_0:canonical-stop-153:canonical-stop-369:1792559340000:1792560720000",
+            2024,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:27754_1_0:canonical-stop-852:canonical-stop-369:1792559280000:1792560720000",
+            2024,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:32605_1_0:canonical-stop-362:canonical-stop-369:1792559820000:1792560840000",
+            2144,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:27755_2_0:canonical-stop-153:canonical-stop-369:1792559640000:1792561020000",
+            2324,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:27755_2_0:canonical-stop-852:canonical-stop-369:1792559580000:1792561020000",
+            2324,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:27619_0_1:canonical-stop-153:canonical-stop-853:1792559460000:1792559580000|lviv-static-ab:20261021:lviv-static-ab:27755_2_0:canonical-stop-853:canonical-stop-369:1792559760000:1792561020000",
+            2324,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:28812_1_0:canonical-stop-153:canonical-stop-853:1792559280000:1792559400000|lviv-static-ab:20261021:lviv-static-ab:27755_2_0:canonical-stop-853:canonical-stop-369:1792559760000:1792561020000",
+            2324,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:28812_1_0:canonical-stop-153:canonical-stop-857:1792559280000:1792559580000|lviv-static-ab:20261021:lviv-static-ab:27755_2_0:canonical-stop-854:canonical-stop-369:1792560000000:1792561020000",
+            2324,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:28812_1_0:canonical-stop-852:canonical-stop-853:1792559220000:1792559400000|lviv-static-ab:20261021:lviv-static-ab:27755_2_0:canonical-stop-853:canonical-stop-369:1792559760000:1792561020000",
+            2324,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:28812_1_0:canonical-stop-852:canonical-stop-857:1792559220000:1792559580000|lviv-static-ab:20261021:lviv-static-ab:27755_2_0:canonical-stop-854:canonical-stop-369:1792560000000:1792561020000",
+            2324,
+            2300
+          ]
+        ]
+      },
+      "candidate": {
+        "elapsedMs": 2140,
+        "count": 100,
+        "searchTruncated": true,
+        "candidateGraphTruncated": true,
+        "resultLimitReached": true,
+        "legCounts": {
+          "1": 24,
+          "2": 69,
+          "3": 7,
+          "4": 0
+        },
+        "bestDurationSeconds": 2024,
+        "bestKnownFareMinor": 2300,
+        "objectiveSample": [
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:27754_1_0:canonical-stop-153:canonical-stop-369:1792559340000:1792560720000",
+            2024,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:27754_1_0:canonical-stop-852:canonical-stop-369:1792559280000:1792560720000",
+            2024,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:32605_1_0:canonical-stop-362:canonical-stop-369:1792559820000:1792560840000",
+            2144,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:27755_2_0:canonical-stop-153:canonical-stop-369:1792559640000:1792561020000",
+            2324,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:27755_2_0:canonical-stop-852:canonical-stop-369:1792559580000:1792561020000",
+            2324,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:27619_0_1:canonical-stop-153:canonical-stop-853:1792559460000:1792559580000|lviv-static-ab:20261021:lviv-static-ab:27755_2_0:canonical-stop-853:canonical-stop-369:1792559760000:1792561020000",
+            2324,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:28812_1_0:canonical-stop-153:canonical-stop-853:1792559280000:1792559400000|lviv-static-ab:20261021:lviv-static-ab:27755_2_0:canonical-stop-853:canonical-stop-369:1792559760000:1792561020000",
+            2324,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:28812_1_0:canonical-stop-153:canonical-stop-857:1792559280000:1792559580000|lviv-static-ab:20261021:lviv-static-ab:27755_2_0:canonical-stop-854:canonical-stop-369:1792560000000:1792561020000",
+            2324,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:28812_1_0:canonical-stop-852:canonical-stop-853:1792559220000:1792559400000|lviv-static-ab:20261021:lviv-static-ab:27755_2_0:canonical-stop-853:canonical-stop-369:1792559760000:1792561020000",
+            2324,
+            2300
+          ],
+          [
+            "lviv-static-ab:20261021:lviv-static-ab:28812_1_0:canonical-stop-852:canonical-stop-857:1792559220000:1792559580000|lviv-static-ab:20261021:lviv-static-ab:27755_2_0:canonical-stop-854:canonical-stop-369:1792560000000:1792561020000",
+            2324,
+            2300
+          ]
+        ]
+      },
+      "repeatedElapsedMs": {
+        "baseline": [
+          2199,
+          2152,
+          2083
+        ],
+        "candidate": [
+          2257,
+          2295,
+          2140
+        ]
+      },
+      "comparison": {
+        "added": 0,
+        "removed": 0,
+        "identicalOrderedIds": true,
+        "addedExamples": [],
+        "removedExamples": []
+      }
+    }
+  ]
+}

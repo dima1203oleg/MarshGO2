@@ -1,0 +1,21 @@
+# GTFS query-targeted long direct segments — 2026-10-26
+
+## Change
+
+- Canonical Server: dirty branch `feature/transport-layer-availability`, committed HEAD `92a26a3f617f32d644a66c0af46cba096ccb0ce0`. Existing modifications were preserved; no commit, push, PR, merge, or deployment.
+- `findGtfsItinerariesWithStats` still bounds general stop-pair expansion to 20 eligible downstream stops. It now additionally materializes pairs from a selected origin stop directly to selected destination stops beyond that span. This query-directed exception allows a long scheduled through-ride to be returned without expanding every intervening stop pair.
+- Direct-only searches no longer report `segmentSpan` for omitted intermediate alighting edges, because those edges cannot produce a requested transfer-free journey; other independent loss reasons (stop selection, candidate/page caps) may still mark the overall search partial. When transfers are allowed, omitted downstream edges continue to set `segmentSpan` conservatively.
+- Regression coverage confirms a 50-stop active service is returned as a direct one-leg candidate, while the transfer-enabled variant still reports possible omitted transfer edges. Existing exhaustive one- and two-transfer oracle cases remain unchanged.
+
+## Verification
+
+- Node `24.22.1`: GTFS timetable + journey completeness **47/47 PASS**; full Server suite **238 PASS / 0 FAIL / 1 opt-in integration SKIP**.
+- Server `tsc --noEmit` and full ESLint: PASS.
+- Frozen GTFS archive SHA-256 `bb4ac0ce9127b4967ad889379f523b04b84a0bb033814aa8c844526b42078164`, 72 routes / 1,071 stops / 15,716 trips, three fixed Lviv O/Ds: all still returned 100 results and `searchTruncated=true`, `resultLimitReached=true`. Segment counts changed from the immediately preceding diagnostic run by **+63 / +0 / +27**; this is not evidence of completeness. Debug runs were single samples and no latency or capacity SLA is claimed. A separate parser-level query for the exact Maloholoskivska→Sykhiv corridor found bus→tram candidates in its 18-item output.
+- Isolated PostGIS/Redis integration rerun is **not fully green**: Journey schema **2/2 PASS**, live journey **1/1 PASS**, booking/editing **20/21 PASS**. The enabled-Lviv case is unstable at the API boundary: without `WALKING_ROUTING_URL`, the response persisted two bus-only alternatives instead of the required bus+tram chain; with the isolated OSRM-compatible foot fixture, a run failed because a result lacked its BALANCED rank, and the next run advertised BALANCED while returning zero journeys. The same provider's loopback database metadata, fetched feed hash (`bb4ac0ce9127b4967ad889379f523b04b84a0bb033814aa8c844526b42078164`) and parser counts (72 routes / 1,071 stops / 15,716 trips) match the frozen replay; direct router execution returns multiple bus→tram chains. The failure is therefore downstream of, or in the API path's handling of, router candidates. Navigation, clustered realtime, restart and rate-limit suites were not reached because the script exits on this booking failure. This is an unresolved API/persistence/selection acceptance failure, not a passed integration gate.
+
+## Limits and next work
+
+- This fixes one concrete false-negative class: a selected-origin to selected-destination through-ride beyond the 20-stop span. It does not add query-targeted long segments after a transfer, prove all transfer paths, remove stop-selection/search-budget/candidate-sampling loss, or establish FASTEST/CHEAPEST/BALANCED global winners on dense feeds. The API-level bus+tram acceptance discrepancy also remains open.
+- Continue by tracing the failing integration response from GTFS group output through walking validation, strategy representatives, transaction persistence and response assembly; add stage-specific assertions around candidate IDs/counts rather than changing expected behavior. Reproduce with the exact feed hash and query parameters. Preserve service calendars, GTFS pickup/drop-off, realtime skips/delays, pathways/transfers, walking constraints, fares and cycle prevention. Extend the existing destination-directed labels only after exhaustive small-feed identity and strategy-winner parity passes.
+- Staging/live-provider, production, physical iPhone and owner-approved deployment gates remain open. `PRODUCTION_READY=false`; `RELEASE_STATUS=NOT_RELEASED`.

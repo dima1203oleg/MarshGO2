@@ -1,0 +1,82 @@
+name: iOS Simulator Build
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  simulator-build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require immutable inputs for release builds
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          SITE_REF: ${{ vars.MARSHGO_SITE_SHA }}
+          SERVER_REF: ${{ vars.MARSHGO_SERVER_SHA }}
+          MIGRATION_VERSION: ${{ vars.MARSHGO_DATABASE_MIGRATION_VERSION }}
+          API_VERSION: ${{ vars.MARSHGO_API_CONTRACT_VERSION }}
+          API_BASE_URL: ${{ vars.MARSHGO_API_BASE_URL }}
+        run: |
+          if [[ ! "$SITE_REF" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Release builds require MARSHGO_SITE_SHA to be a full 40-character commit SHA." >&2
+            exit 1
+          fi
+          if [[ ! "$SERVER_REF" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Release builds require MARSHGO_SERVER_SHA to be a full 40-character commit SHA." >&2
+            exit 1
+          fi
+          if [[ -z "$MIGRATION_VERSION" || -z "$API_VERSION" ]]; then
+            echo "Release builds require MARSHGO_DATABASE_MIGRATION_VERSION and MARSHGO_API_CONTRACT_VERSION." >&2
+            exit 1
+          fi
+          if [[ ! "$API_BASE_URL" =~ ^https://[^/[:space:]]+(/[^[:space:]]*)?$ ]]; then
+            echo "Release builds require MARSHGO_API_BASE_URL to be a public HTTPS origin/path." >&2
+            exit 1
+          fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.21.0
+          cache: npm
+          cache-dependency-path: |
+            apps/site/package-lock.json
+            apps/ios/package-lock.json
+      - run: npm ci --prefix apps/site
+      - run: npm ci --prefix apps/ios
+      - name: Build bundled site and sync Capacitor
+        env:
+          CAPACITOR_BUILD: "true"
+          VITE_API_BASE_URL: ${{ vars.MARSHGO_API_BASE_URL }}
+          CAPACITOR_WEB_DIR: ../site/dist
+          MARSHGO_SITE_DIR: ../site
+          MARSHGO_SITE_SOURCE_COMMIT: ${{ vars.MARSHGO_SITE_SHA || '6ed4875ef8f02c5861dfe021e6baaac41b2205f3' }}
+          MARSHGO_MONOREPO_COMMIT: ${{ github.sha }}
+          MARSHGO_IOS_SOURCE_COMMIT: 309cf66f9bd718d5ee9f794d2ee72f8b70a2536f
+          MARSHGO_SERVER_SHA: ${{ vars.MARSHGO_SERVER_SHA || '248e413b2a9ee747ce3b0268ba724921b2e03501' }}
+          MARSHGO_API_CONTRACT_VERSION: ${{ vars.MARSHGO_API_CONTRACT_VERSION }}
+          MARSHGO_DATABASE_MIGRATION_VERSION: ${{ vars.MARSHGO_DATABASE_MIGRATION_VERSION }}
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: |
+          npm run build --prefix apps/site
+          npm run site:build-info --prefix apps/ios
+          npm run sync --prefix apps/ios
+      - name: Compile for iOS Simulator
+        run: xcodebuild -project apps/ios/ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
+      - name: Compile unsigned Release archive
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          ARCHIVE_NAME: ${{ github.ref_name }}
+        run: >-
+          xcodebuild -project apps/ios/ios/App/App.xcodeproj -scheme App -configuration Release
+          -sdk iphoneos -destination 'generic/platform=iOS'
+          -archivePath "$RUNNER_TEMP/MARSHGO-${ARCHIVE_NAME}.xcarchive"
+          CODE_SIGNING_ALLOWED=NO archive
+      - uses: actions/upload-artifact@v4
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          name: MARSHGO-${{ github.ref_name }}-unsigned-archive
+          path: ${{ runner.temp }}/MARSHGO-${{ github.ref_name }}.xcarchive
+          if-no-files-found: error

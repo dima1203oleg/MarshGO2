@@ -1,83 +1,54 @@
-# MARSHGO — Розумні поїздки Україна 🇺🇦
+# MARSHGO2
 
-Повноцінна мультимодальна транспортна платформа, реалізована за дизайном Google AI Studio з повною бізнес-логікою, GPS-навігацією та квитковою системою MarshPass.
+MARSHGO2 is the integration repository for the MARSHGO product. Canonical
+application sources are kept under `apps/`; the root is the workspace entry
+point, not a second application implementation.
 
----
+## Applications
 
-## 📱 Ключові екрани та можливості (відповідно до еталону)
+- `apps/site` — canonical React/MapLibre Web/PWA, including the current Qoder
+  route-motion, bottom-sheet, transport selector, haptic and sound-feedback
+  work.
+- `apps/server` — API, routing and transport-provider services.
+- `apps/ios` — Capacitor iOS wrapper that builds the integrated `apps/site`.
+- `apps/admin` and `apps/partner` — operational and partner applications.
+- `orchestration` — shared checks, evidence and product operations.
 
-1. **Головна (без поїздок)**:
-   - Брендований хідер із вибором міста (Львів, Київ, Тернопіль, Житомир, Одеса тощо), чатом та сповіщеннями.
-   - Динамічна Hero-зона: заставка з автомобілем, пасажирами та слоганом «Використовуй навігацію — вас попутники знайдуть».
-   - Сітка 2×2 з великими градієнтними кнопками:
-     - 🟦 **Навігація** (Побудувати маршрут)
-     - 🟩 **Карта транспорту** (Зупинки, лінії, рух)
-     - 🟪 **Знайти маршрут** (Усі види транспорту)
-     - 🟧 **Опублікувати поїздку** (Попутники поруч)
-   - Популярні напрямки (Київ від 320 грн, Тернопіль від 180 грн, Івано-Франківськ від 260 грн).
+The integration preserves the source repositories' files but does not combine
+their Git histories. `MONOREPO_INTEGRATION.md` records source commits, imported
+Qoder work and verification status.
 
-2. **Головна (з поїздками / MarshPass)**:
-   - Hero-зона автоматично замінюється цифровим квитком MarshPass з валідним QR-кодом, маршрутом «Львів → Київ», розкладом, сегментами транспорту, ціною та пагінацією.
-   - Перемикач «Квиток активний / Без поїздок» у верхній панелі для швидкого тестування обох станів.
+## Run the canonical web app
 
-3. **Пошук маршруту та iOS-колесо вибору дати/часу**:
-   - Інтуїтивні поля «Звідки» і «Куди» з автовизначенням геолокації та швидким реверсом точок.
-   - **Інтерактивне iOS-колесо (UIDatePicker Drum Wheel) із звуковою тріскачкою та вібрацією**:
-     - При виборі дати, годин чи хвилин синтезується механічний клацаючий імпульс (ratchet click) через Web Audio API.
-     - Одночасно передається тактильний вібро-відгук Taptic Engine (`navigator.vibrate(8)`).
-     - Зручні барабани прокрутки дати, 24 годин та 5-хвилинних інтервалів з пресетами («Сьогодні», «Завтра», «Зараз ⚡»).
-   - **12 категорій транспорту**:
-     1. Попутка (Carpool)
-     2. Маршрутка (Minibus)
-     3. Автобус (Bus)
-     4. Таксі (Taxi)
-     5. Тролейбус (Trolleybus)
-     6. Метро (Metro)
-     7. Трамвай (Tram)
-     8. Поїзд / Електричка (Train)
-     9. Велосипед (Bike)
-     10. Самокат (Scooter)
-     11. Каршеринг (Carshare)
-     12. Трансфер (Transfer)
+Install dependencies in `apps/site`, then run:
 
-4. **Результати пошуку**:
-   - Фільтрація: `[Оптимальні]`, `[Найдешевші]`, `[Найшвидші]`.
-   - Детальні картки з мультимодальними сегментами, іконками транспорту та покроковою вартістю кожного відрізка.
+```sh
+npm run site:dev
+```
 
-5. **Карта маршруту та Live GPS Навігація**:
-   - Інтерактивна карта Leaflet із перемиканням шарів: **3D**, **Супутник**, **Транспорт**.
-   - **GTFS-RT Live Engine**: Оновлення координат, затримок та швидкості транспорту на маршруті в реальному часі кожні 2.5 секунди.
-   - **Turn-by-turn Navigation HUD**: Верхній блок маневрів (Next Turn Card), цифровий спідометр (км/год) з обмеженням швидкості, звукові аудіо-підказки через Web Audio API та розрахунок ETA.
-   - **Gesture-driven Draggable Bottom Sheet**: Висувна шторка з підтримкою сенсорних жестів свайпу (3 положення: згорнуто, прев'ю, розгорнуто) для зручного перегляду зупинок.
-   - Маркери пересадок (Львів, Рівне, Житомир, Київ) та плаваюча картка маршруту.
+The API is available through `npm run server:api` after installing
+`apps/server` dependencies and configuring its local environment. Do not put
+credentials or private provider keys in the repository.
 
-6. **Деталі маршруту**:
-   - Повний хронологічний таймлайн від початкової адреси до фінальної.
-   - Детальні зупинки, пересадки (попутка → АС Житомир → маршрутка №112 → метро М1 → Хрещатик).
-   - Кнопка «Live GPS» для миттєвого переходу в режим навігатора.
+## Build and launch iPhone 15 Pro Max Simulator
 
-7. **Деталі попутки**:
-   - Профіль водія (Андрій Коваленко, 4.9 рейтинг, 128 поїздок), автомобіль Skoda Octavia, вільні місця.
-   - Швидкі чіпи: «Я на місці», «Буду за 5 хв», «Затримуюсь на 10 хв».
-   - Список попутників, проміжні зупинки, наскрізне бронювання місця.
+The iOS command builds the local integrated Site, syncs Capacitor and compiles
+the selected simulator. It requires Xcode, Node 24.21.0, a reachable API URL,
+and the simulator UDID:
 
-8. **MarshPass (Квиток та Керування)**:
-   - Цифровий квиток із матричним QR-кодом, номером броні `MG7246`, місцем 1A та гарантією поїздки.
-   - Модальне вікно збільшення QR-коду на весь екран для зручного сканування контролером.
-   - Експорт до Apple Wallet / Google Wallet із автентичною карткою PKPass.
-   - Поширення поїздки, прямий дзвінок та перехід у чат із водієм.
-   - Скасування бронювання з підбором альтернативного рейсу.
+```sh
+SIMULATOR_UDID=<device-udid> \
+VITE_API_BASE_URL=http://localhost:3002 \
+npm run ios:simulator
+```
 
-9. **Публікація поїздки водієм та запиту пасажира**:
-   - Повнофункціональне модальне вікно з моментальним збереженням та появою нової поїздки в пошуку.
+Optionally provide exact 40-character source pins with
+`MARSHGO_SITE_SOURCE_COMMIT`, `MARSHGO_IOS_SOURCE_COMMIT`, and
+`MARSHGO_SERVER_SHA`. A local simulator build is not a production deployment
+or physical-device acceptance.
 
-10. **Повідомлення (Messages)**:
-    - Чат із водієм у реальному часі з автоматичною імітацією відповідей та швидкими відповідями.
+## Release state
 
-11. **Профіль та Теми**:
-    - Перемикач «Пасажир / Водій», верифікація через «Дія.Підпис», автопарк, історія квитків.
-    - **Повна підтримка світлої та темної теми (Нічний режим)** із перемикачем у профілі та на панелі пристрою.
-
-12. **Подвійний режим відображення**:
-    - **iPhone 16 Pro View**: Автентичний мобільний корпус із Dynamic Island, статус-баром та home indicator.
-    - **Web / Desktop View**: Адаптивний повноекранний інтерфейс для моніторів та планшетів.
+**NOT_RELEASED.** This branch is an integration candidate. Production release
+requires its documented API, provider, security, device, and acceptance gates
+to pass. No production systems or data are changed by this repository setup.

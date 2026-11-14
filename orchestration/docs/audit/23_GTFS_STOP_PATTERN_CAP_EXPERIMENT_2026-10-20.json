@@ -1,0 +1,25 @@
+{
+  "observedAt": "2026-10-20",
+  "baselineServerSha": "1a3598cc270af0d353a2b22cda740f81daa0da73",
+  "candidateChange": "Temporary experiment only: MAX_STOPS_PER_ROUTE_PATTERN 2 -> 3. Temporary source file was removed after the run; no code or branch was changed.",
+  "sourceFeedSha256": "bb4ac0ce9127b4967ad889379f523b04b84a0bb033814aa8c844526b42078164",
+  "method": "Same saved Lviv GTFS archive, same search windows and 100-result cap. Four corridors compared once; north-to-railway-station repeated three times with alternating baseline/candidate order.",
+  "singleRunComparisons": [
+    {"id":"north-sykhiv","baseline":{"ms":2720,"legs":{"1":13,"2":77,"3":10,"4":0},"bestDurationSeconds":4124,"bestFareMinor":2300},"cap3":{"ms":2791,"legs":{"1":16,"2":72,"3":12,"4":0},"bestDurationSeconds":4124,"bestFareMinor":2300},"added":18,"removed":18,"bothTruncated":true},
+    {"id":"center-station","baseline":{"ms":2623,"legs":{"1":55,"2":44,"3":1,"4":0},"bestDurationSeconds":1740,"bestFareMinor":2300},"cap3":{"ms":2491,"legs":{"1":55,"2":44,"3":1,"4":0},"bestDurationSeconds":1740,"bestFareMinor":2300},"added":28,"removed":28,"bothTruncated":true},
+    {"id":"north-station","baseline":{"ms":2342,"legs":{"1":24,"2":45,"3":31,"4":0},"bestDurationSeconds":2187,"bestFareMinor":2300},"cap3":{"ms":2490,"legs":{"1":20,"2":36,"3":42,"4":2},"bestDurationSeconds":2323,"bestFareMinor":2300},"added":46,"removed":46,"bothTruncated":true},
+    {"id":"center-sykhiv","baseline":{"ms":2614,"legs":{"1":24,"2":58,"3":12,"4":6},"bestDurationSeconds":2024,"bestFareMinor":2300},"cap3":{"ms":2474,"legs":{"1":22,"2":65,"3":12,"4":1},"bestDurationSeconds":2024,"bestFareMinor":2300},"added":35,"removed":35,"bothTruncated":true}
+  ],
+  "repeatConfirmation": {
+    "query": "north-to-railway-station",
+    "baselineMs": [2258,2133,2131],
+    "cap3Ms": [2301,2165,2162],
+    "baselineBestDurationSeconds": [2187,2187,2187],
+    "cap3BestDurationSeconds": [2323,2323,2323],
+    "baselineLegCounts": {"1":24,"2":49,"3":27,"4":0},
+    "cap3LegCounts": {"1":20,"2":40,"3":38,"4":2},
+    "added": 40,
+    "removed": 40
+  },
+  "decision": "REJECTED. The broader stop selection changes the output but consistently displaces faster direct/shorter alternatives in the repeated corridor and increases latency slightly. Do not merge this cap change. A future stop-selection improvement must preserve high-quality direct and short itineraries while adding useful alternatives; all truncated flags remain truthful."
+}

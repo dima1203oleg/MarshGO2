@@ -1,0 +1,11 @@
+node_modules/
+.env
+.env.local-api
+coverage/
+*.log
+
+.tmp*
+*.tmp*
+.uploads/
+scratch*
+server/journey/.tmp*
