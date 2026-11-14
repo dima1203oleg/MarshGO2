@@ -1,0 +1,80 @@
+name: MarshGO2 Integration
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marshgo2-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  site:
+    name: Site typecheck, tests and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.21.0
+          cache: npm
+          cache-dependency-path: apps/site/package-lock.json
+      - run: npm ci --prefix apps/site
+      - run: npm run typecheck --prefix apps/site
+      - run: npm run lint --prefix apps/site
+      - run: npm test --prefix apps/site
+      - run: npm run build --prefix apps/site
+
+  server:
+    name: Server typecheck, lint and tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.21.0
+          cache: npm
+          cache-dependency-path: apps/server/package-lock.json
+      - run: npm ci --prefix apps/server
+      - run: npm run typecheck --prefix apps/server
+      - run: npm run lint --prefix apps/server
+      - run: npm test --prefix apps/server
+
+  ios-simulator:
+    name: iOS Simulator compile
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.21.0
+          cache: npm
+          cache-dependency-path: |
+            apps/site/package-lock.json
+            apps/ios/package-lock.json
+      - run: npm ci --prefix apps/site
+      - run: npm ci --prefix apps/ios
+      - name: Build integrated Site and sync Capacitor
+        env:
+          CAPACITOR_BUILD: 'true'
+          CAPACITOR_WEB_DIR: ../site/dist
+          MARSHGO_SITE_DIR: ../site
+          MARSHGO_SITE_SOURCE_COMMIT: 6ed4875ef8f02c5861dfe021e6baaac41b2205f3
+          MARSHGO_MONOREPO_COMMIT: ${{ github.sha }}
+          MARSHGO_IOS_SOURCE_COMMIT: 309cf66f9bd718d5ee9f794d2ee72f8b70a2536f
+          MARSHGO_SERVER_SHA: 248e413b2a9ee747ce3b0268ba724921b2e03501
+        run: |
+          npm run build --prefix apps/site
+          npm run site:build-info --prefix apps/ios
+          npm run sync --prefix apps/ios
+      - name: Compile iOS Simulator app
+        run: >-
+          xcodebuild -project apps/ios/ios/App/App.xcodeproj -scheme App
+          -configuration Debug -sdk iphonesimulator
+          -destination 'generic/platform=iOS Simulator'
+          CODE_SIGNING_ALLOWED=NO build
