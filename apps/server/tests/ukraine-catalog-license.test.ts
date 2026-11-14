@@ -58,7 +58,9 @@ test('municipal realtime feeds carry dataset-specific open-license evidence', ()
   assert.ok(zhmerinkaSchedule);
   assert.equal(zhmerinkaSchedule.feedUrl, 'https://data.gov.ua/api/3/action/package_show?id=ea47d118-9085-4695-9202-1839acd7e0c5');
   assert.equal(commercialUseFromLicense(zhmerinkaSchedule.license), true);
-  assert.match(zhmerinkaSchedule.coverage, /перевірка чинного сервісу потрібна/);
+  assert.match(zhmerinkaSchedule.coverage, /Не використовувати для пошуку маршрутів до виправлення/);
+  assert.match(zhmerinkaSchedule.coverage, /CSV snapshot не узгоджені за trip\/stop_times ID/);
+  assert.match(zhmerinkaSchedule.coverage, /немає форм маршрутів/);
 });
 
 test('a generic platform name does not grant commercial feed rights', () => {
