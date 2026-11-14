@@ -22,7 +22,7 @@ test('provider activation fails closed unless the source explicitly allows comme
 });
 
 test('Stryi municipal GTFS records its official CC BY attribution and remains schedule-only', () => {
-  const stryi = ukraineCatalog.find((entry) => entry.sourceRef.includes('mdb:ua-stryi-gtfs-2932'));
+  const stryi = ukraineCatalog.find((entry) => entry.feedUrl === 'https://track.ua-gis.com/gtfs/stryi/static.zip');
 
   assert.ok(stryi);
   assert.equal(stryi.access, 'open');

@@ -72,7 +72,10 @@ test('verified-live scope disables sources unless the current probe is healthy',
 });
 
 test('existing all and Kyiv metro seed scopes remain stable', () => {
-  assert.equal(selectUkraineSeedEntries('all', catalog)?.length, catalog.length);
+  const all = selectUkraineSeedEntries('all', catalog);
+  assert.equal(all?.length, catalog.length - 2, 'all excludes the rejected Zhmerinka and stale Chornomorsk GTFS snapshots');
+  assert.ok(!all?.some((entry) => entry.sourceRef === 'https://data.gov.ua/dataset/ea47d118-9085-4695-9202-1839acd7e0c5'));
+  assert.ok(!all?.some((entry) => entry.city === 'Чорноморськ'));
   assert.ok((selectUkraineSeedEntries('--kyiv-metro', catalog)?.length ?? 0) > 0);
   assert.equal(selectUkraineSeedEntries('--unknown', catalog), null);
 });

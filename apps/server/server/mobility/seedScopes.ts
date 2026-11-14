@@ -69,7 +69,7 @@ export function selectUkraineSeedEntries(scope: string, catalog: CatalogEntry[])
     return catalog.filter((entry) => entry.sourceType === 'gtfs' && VERIFIED_STRYI_UZHHOROD_GTFS_SOURCE_REFS.has(entry.sourceRef));
   }
   if (scope === '--candidate-gtfs-csv') {
-    return catalog.filter((entry) => entry.sourceType === 'gtfs' && CANDIDATE_GTFS_CSV_SOURCE_REFS.has(entry.sourceRef) && !REJECTED_GTFS_SOURCE_REFS.has(entry.sourceRef));
+    return catalog.filter((entry) => entry.sourceType === 'gtfs' && CANDIDATE_GTFS_CSV_SOURCE_REFS.has(entry.sourceRef));
   }
   if (scope === '--candidate-gtfs-bundle') {
     return catalog.filter((entry) => entry.sourceType === 'gtfs' && CANDIDATE_GTFS_BUNDLE_SOURCE_REFS.has(entry.sourceRef));

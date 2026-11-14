@@ -62,8 +62,7 @@ test('only a new source with validated commercial access gets an enabled default
 });
 
 for (const feedUrl of [
-  'https://track.ua-gis.com/gtfs/uzhhorod/static.zip',
-  'https://city.dozor.tech/iv-frankivsk/gtfs/static.zip',
+  'https://city.dozor.tech/rivne/gtfs/static.zip',
 ]) {
   test(`schedule dataset metadata alone cannot activate an unverified archive: ${feedUrl}`, () => {
     const entry = catalog.find((row) => row.feedUrl === feedUrl);
