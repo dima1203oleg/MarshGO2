@@ -1,6 +1,7 @@
 import { parentPort, workerData } from 'node:worker_threads';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import v8 from 'node:v8';
 import { tsImport } from 'tsx/esm/api';
 
 if (!parentPort) throw new Error('GTFS search worker requires a parent port');
@@ -16,10 +17,14 @@ const [{ cachedGtfsTimetable, mergeGtfsTimetables, getCachedGtfsTimetableStats, 
 // An opt-in, exact-URL test seam lets API integration tests exercise the real
 // worker/parser/planner without a public feed or any relaxation of safeFetch.
 // Production never receives the directory, and no other URL can use the seam.
-const GTFS_TEST_FIXTURE_URL = 'https://gtfs-api-fixture.invalid/lviv.zip';
+const GTFS_TEST_FIXTURE_URLS = new Map([
+  ['https://gtfs-api-fixture.invalid/lviv.zip', ''],
+  ['https://gtfs-api-fixture.invalid/direct-only.zip', 'direct-only'],
+]);
 const GTFS_TEST_FILES = ['agency.txt', 'routes.txt', 'stops.txt', 'trips.txt', 'stop_times.txt', 'calendar.txt', 'shapes.txt'];
 const testFixtureDirectory = typeof workerData?.testFixtureDirectory === 'string'
   ? workerData.testFixtureDirectory : undefined;
+const testFixtureFeedCache = new Map();
 
 async function loadProviderTimetable(provider) {
   const startedAt = Date.now();
@@ -29,11 +34,20 @@ async function loadProviderTimetable(provider) {
 }
 
 async function loadProviderTimetableUncached(provider) {
-  if (testFixtureDirectory && provider.feedUrl === GTFS_TEST_FIXTURE_URL) {
-    const entries = await Promise.all(GTFS_TEST_FILES.map(async (name) => [name,
-      new Uint8Array(await readFile(join(testFixtureDirectory, name)))
-    ]));
-    return parseGtfsTimetable(Object.fromEntries(entries));
+  const fixtureSubdirectory = GTFS_TEST_FIXTURE_URLS.get(provider.feedUrl);
+  if (testFixtureDirectory && fixtureSubdirectory !== undefined) {
+    const cacheKey = `${provider.id}\u0000${provider.feedUrl}`;
+    const cached = testFixtureFeedCache.get(cacheKey);
+    if (cached) {
+      debugStage('test-fixture-feed-cache-hit', { provider: provider.id });
+      return cached;
+    }
+    const pending = Promise.all(GTFS_TEST_FILES.map(async (name) => [name,
+      new Uint8Array(await readFile(join(testFixtureDirectory, fixtureSubdirectory, name)))
+    ])).then((entries) => parseGtfsTimetable(Object.fromEntries(entries)));
+    testFixtureFeedCache.set(cacheKey, pending);
+    try { return await pending; }
+    catch (error) { testFixtureFeedCache.delete(cacheKey); throw error; }
   }
   const isUkraineProvider = provider.country === 'UA' || /львів|київ|дніпро|одеса|харків|хмельницький|ужгород|буча|червоноград|україна/i.test(provider.city || provider.name);
   return cachedGtfsTimetable(provider.id, provider.feedUrl, Date.now(), isUkraineProvider ? 'Europe/Kyiv' : undefined);
@@ -54,7 +68,7 @@ const debugStage = (stage, details = {}) => {
   }
 };
 
-async function buildGroups(providers, metro) {
+async function buildGroups(providers, metro, searchInput) {
   const loaded = await Promise.allSettled(providers.map(async (provider) => {
     const feed = await loadProviderTimetable(provider);
     let realtime = null;
@@ -88,7 +102,9 @@ async function buildGroups(providers, metro) {
       errors.push({ providerId: metro.routeSource.id, name: 'Київське метро', kind: 'schedule' });
     }
   }
-  const built = buildGtfsSearchGroups(sources, String(activeSearchId));
+  const built = buildGtfsSearchGroups(sources, String(activeSearchId), searchInput ? {
+    origin: searchInput.origin, destination: searchInput.destination,
+  } : undefined);
   debugStage('groups-built', { sources: sources.length, groups: built.groups.length, errors: errors.length });
   for (const [id, group] of built.groups) groups.set(id, group);
   return { descriptors: built.descriptors, errors };
@@ -103,13 +119,15 @@ parentPort.on('message', async (message) => {
       const memory = globalThis.process.memoryUsage();
       parentPort.postMessage({ id, ok: true, value: {
         rssBytes: memory.rss, heapUsedBytes: memory.heapUsed, externalBytes: memory.external,
+        // The isolate's own ceiling — `rssBytes` above is process-wide and includes the API isolate.
+        heapLimitBytes: v8.getHeapStatistics().heap_size_limit,
         feedCache: getCachedGtfsTimetableStats(), groupCacheEntries: groups.size,
       } });
       return;
     }
     if (type === 'search') {
       activeSearchId = id;
-      const { descriptors, errors } = await buildGroups(message.providers, message.metro);
+      const { descriptors, errors } = await buildGroups(message.providers, message.metro, message.input);
       const result = [];
       for (const descriptor of descriptors) {
         const group = groups.get(descriptor.id);

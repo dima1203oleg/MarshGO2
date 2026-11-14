@@ -1,19 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { DEFAULT_MAX_ACCESS_WALKING_METERS, DEFAULT_MAX_EGRESS_WALKING_METERS, DEFAULT_MAX_TRANSFER_WALKING_METERS, DEFAULT_MINIMUM_TRANSFER_BUFFER_SECONDS, createGtfsTransferDecisionContext, eligibleTripInstanceStopEvents, findDirectGtfsJourneys, findGtfsItineraries, findGtfsItinerariesWithStats, findGtfsStopArrivals, maximumGtfsWaitWithinJourney, mergeGtfsTimetables, parseGtfsTimetable, rankGtfsItinerariesForCandidateSampling, retainGtfsBalancedObjectiveSample, sampleGtfsRouteChainCandidates, sampleGtfsTripChainCandidates, selectGtfsCandidatesForCrossProviderSearch, shouldOmitGtfsStopPairBeyondLocalWindow } from '../server/journey/gtfsTimetable';
+import { DEFAULT_MAX_ACCESS_WALKING_METERS, DEFAULT_MAX_EGRESS_WALKING_METERS, DEFAULT_MAX_TRANSFER_WALKING_METERS, DEFAULT_MINIMUM_TRANSFER_BUFFER_SECONDS, MAX_PREFERENCE_WALKING_RADIUS_METERS, createGtfsTransferDecisionContext, eligibleTripInstanceStopEvents, findDirectGtfsJourneys, findGtfsItineraries, findGtfsItinerariesWithStats, findGtfsStopArrivals, maximumGtfsWaitWithinJourney, mergeGtfsTimetables, parseGtfsTimetable, rankGtfsItinerariesForCandidateSampling, retainGtfsBalancedObjectiveSample, sampleGtfsRouteChainCandidates, sampleGtfsTripChainCandidates, selectGtfsCandidatesForCrossProviderSearch, shouldOmitGtfsStopPairBeyondLocalWindow } from '../server/journey/gtfsTimetable';
 import { scoreJourneys } from '../server/journey/scoring';
 import type { GtfsCandidateGraphSnapshot, GtfsDirectJourney, GtfsItinerary, GtfsTimetableFeed } from '../server/journey/gtfsTimetable';
 import { queryDirectedEventIndexPrototype, validateEventIndexCandidatesWithProductionTransfers } from './helpers/gtfs-event-label-prototype';
 import { lazyEventLabelSearch, lazyEventLabelSearchForRequest } from './helpers/gtfs-lazy-event-label-search';
 
-function feed(overrides: { monday?: string; tuesday?: string; exceptionDate?: string; exceptionType?: string; pickup?: string; dropoff?: string; departure?: string; arrival?: string; routeType?: string; routeName?: string; withShape?: boolean; withIntermediate?: boolean; withArrivalAlternatives?: boolean } = {}) {
+function feed(overrides: { monday?: string; tuesday?: string; exceptionDate?: string; exceptionType?: string; pickup?: string; dropoff?: string; departure?: string; arrival?: string; routeType?: string; routeName?: string; withShape?: boolean; withDenseShape?: boolean; withIntermediate?: boolean; withArrivalAlternatives?: boolean } = {}) {
   const routeRows = [
     'route_id,agency_id,route_short_name,route_long_name,route_type',
     `r,a,7,${overrides.routeName ?? 'Test bus'},${overrides.routeType ?? '3'}`,
     ...(overrides.withArrivalAlternatives ? ['r2,a,8,Other route,3'] : []),
   ];
   const tripRows = [
-    `r,weekday,t1,Central station${overrides.withShape ? ',shape-1' : ''}`,
+    `r,weekday,t1,Central station${overrides.withShape || overrides.withDenseShape ? ',shape-1' : ''}`,
     ...(overrides.withArrivalAlternatives ? ['r2,weekday,t2,Central station', 'r,weekday,t3,Opposite direction'] : []),
   ];
   const files: Record<string, Uint8Array> = {
@@ -25,7 +25,7 @@ function feed(overrides: { monday?: string; tuesday?: string; exceptionDate?: st
       ...(overrides.withIntermediate ? ['middle,Middle stop,49.8450,24.0250'] : []),
       'destination,Destination stop,49.8500,24.0300',
     ].join('\n')),
-    'trips.txt': new TextEncoder().encode(`route_id,service_id,trip_id,trip_headsign${overrides.withShape ? ',shape_id' : ''}\n${tripRows.join('\n')}`),
+    'trips.txt': new TextEncoder().encode(`route_id,service_id,trip_id,trip_headsign${overrides.withShape || overrides.withDenseShape ? ',shape_id' : ''}\n${tripRows.join('\n')}`),
     'stop_times.txt': new TextEncoder().encode([
       'trip_id,arrival_time,departure_time,stop_id,stop_sequence,pickup_type,drop_off_type',
       `t1,${overrides.departure ?? '08:00:00'},${overrides.departure ?? '08:00:00'},origin,1,${overrides.pickup ?? '0'},0`,
@@ -41,6 +41,18 @@ function feed(overrides: { monday?: string; tuesday?: string; exceptionDate?: st
     'shape-1,49.8450,24.0240,2',
     'shape-1,49.8500,24.0300,3',
   ].join('\n'));
+  if (overrides.withDenseShape) {
+    // A winding 601-point shape: longer than the drawing polyline can keep once it is
+    // decimated to 500 points, so distance and drawing are proved independently.
+    const dense = ['shape_id,shape_pt_lat,shape_pt_lon,shape_pt_sequence'];
+    for (let index = 0; index <= 600; index += 1) {
+      const ratio = index / 600;
+      const lat = 49.8400 + 0.0100 * ratio + (index % 2 === 1 ? 0.00002 : 0);
+      const lon = 24.0200 + 0.0100 * ratio;
+      dense.push(`shape-1,${lat.toFixed(6)},${lon.toFixed(6)},${index + 1}`);
+    }
+    files['shapes.txt'] = new TextEncoder().encode(dense.join('\n'));
+  }
   if (overrides.exceptionDate) files['calendar_dates.txt'] = new TextEncoder().encode(`service_id,date,exception_type\nweekday,${overrides.exceptionDate},${overrides.exceptionType ?? '1'}`);
   return parseGtfsTimetable(files);
 }
@@ -675,15 +687,68 @@ test('carries clipped source GTFS shape geometry on a routed segment', () => {
   assert.deepEqual(geometry[1], [24.024, 49.845]);
 });
 
-test('preserves shape identifiers and geometry when compatible GTFS providers are merged', () => {
-  const merged = mergeGtfsTimetables([{ providerId: 'p1', providerName: 'Test Transit', providerCity: 'Львів', feed: feed({ withShape: true }) }]);
+function chainMeters(points: Array<[number, number]>): number {
+  const radians = (value: number) => value * Math.PI / 180;
+  let total = 0;
+  for (let index = 1; index < points.length; index += 1) {
+    const a = points[index - 1];
+    const b = points[index];
+    const dLat = radians(b[1] - a[1]);
+    const dLon = radians(b[0] - a[0]);
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(radians(a[1])) * Math.cos(radians(b[1])) * Math.sin(dLon / 2) ** 2;
+    total += 2 * 6_371_000 * Math.asin(Math.sqrt(h));
+  }
+  return total;
+}
+
+const denseShapePoints = (): Array<[number, number]> => Array.from({ length: 601 }, (_, index) => {
+  const ratio = index / 600;
+  return [Number((24.0200 + 0.0100 * ratio).toFixed(6)),
+    Number((49.8400 + 0.0100 * ratio + (index % 2 === 1 ? 0.00002 : 0)).toFixed(6))];
+});
+
+test('measures a routed segment along its GTFS shape, not along the decimated drawing', () => {
+  const segment = findGtfsItinerariesWithStats(feed({ withDenseShape: true }), {
+    ...request('2026-10-12T04:55:00Z', '2026-10-12T05:30:00Z'), maximumTransfers: 0,
+  }).itineraries[0]?.segments[0];
+  const drawing = segment?.routeGeometry;
+  const ridden = segment?.shapeDistanceMeters;
+  assert.ok(drawing && ridden !== undefined, 'dense shape must produce geometry and a measured distance');
+  assert.equal(drawing.length, 500, 'the drawing polyline keeps the point cap');
+  assert.ok(Math.abs(ridden - Math.round(chainMeters(denseShapePoints()))) <= 2,
+    `ridden metres ${ridden} must match the independent shape-chain sum`);
+  assert.ok(ridden > Math.round(chainMeters(drawing)),
+    'the distance may not be taken from the shortened drawing polyline');
+});
+
+test('reports the ridden distance of a shaped segment and keeps it absent without a shape', () => {
+  const options = { ...request('2026-10-12T04:55:00Z', '2026-10-12T05:30:00Z'), maximumTransfers: 0 };
+  const shaped = findGtfsItinerariesWithStats(feed({ withShape: true }), options).itineraries[0]?.segments[0];
+  assert.equal(shaped?.shapeDistanceMeters,
+    Math.round(chainMeters([[24.02, 49.84], [24.024, 49.845], [24.03, 49.85]])));
+  const bare = findGtfsItinerariesWithStats(feed(), options).itineraries[0]?.segments[0];
+  assert.equal(bare?.shapeDistanceMeters, undefined, 'a missing source shape must not invent a ridden distance');
+});
+
+test('preserves route source hash, shape identifiers and geometry when compatible GTFS providers are merged', () => {
+  const staticFeedSha256 = 'a'.repeat(64);
+  const merged = mergeGtfsTimetables([{ providerId: 'p1', providerName: 'Test Transit', providerCity: 'Львів',
+    feed: { ...feed({ withShape: true }), staticFeedSha256 } }]);
   assert.ok(merged);
   assert.equal(merged.trips.get('p1:t1')?.shapeId, 'p1:shape-1');
   assert.equal(merged.shapes?.get('p1:shape-1')?.length, 3);
+  assert.equal(merged.providersByRoute?.get('p1:r')?.staticFeedSha256, staticFeedSha256);
   const result = findGtfsItinerariesWithStats(merged, {
     ...request('2026-10-12T04:55:00Z', '2026-10-12T05:30:00Z'), maximumTransfers: 0,
   });
   assert.equal(result.itineraries[0]?.segments[0]?.routeGeometry?.length, 3);
+  assert.equal(result.itineraries[0]?.segments[0]?.staticFeedSha256, staticFeedSha256);
+});
+
+test('direct GTFS journeys retain the parsed static archive hash', () => {
+  const staticFeedSha256 = 'b'.repeat(64);
+  const journeys = findDirectGtfsJourneys({ ...feed(), staticFeedSha256 }, request('2026-10-12T04:55:00Z', '2026-10-12T05:30:00Z'));
+  assert.equal(journeys[0]?.staticFeedSha256, staticFeedSha256);
 });
 
 test('reuses a merged timetable briefly and invalidates it when a source snapshot changes', () => {
@@ -1951,6 +2016,9 @@ test('keeps a globally cheapest direct route discovered after the bounded candid
   assert.equal(result.candidateGraphTruncated, false, 'the test exhausts a complete route graph but exceeds the retained candidate sample');
   assert.equal(result.truncation.candidateGraph, false);
   assert.equal(result.truncation.responsePage, true, 'the response page is distinguished from graph loss');
+  assert.equal(result.truncation.searchBudget, false,
+    'a full candidate pool is candidatePoolLimit, not a spent search budget');
+  assert.equal(result.truncation.searchStepLimit, false);
 
   const previousDebugValue = process.env.MARSHGO_GTFS_SEARCH_DEBUG;
   const originalInfo = console.info;
@@ -1998,26 +2066,47 @@ test('honors GTFS pickup/drop-off restrictions and only searches nearby stops', 
   assert.equal(findDirectGtfsJourneys(feed(), farAway).length, 0);
 });
 
-test('applies separate conservative first-mile and last-mile walking limits', () => {
+test('applies separate first-mile and last-mile walking sheds, then plans from the closest stop within the walk ceiling', () => {
   assert.equal(DEFAULT_MAX_ACCESS_WALKING_METERS, 900);
   assert.equal(DEFAULT_MAX_EGRESS_WALKING_METERS, 1000);
   assert.equal(DEFAULT_MAX_TRANSFER_WALKING_METERS, 400);
 
+  // Both pins sit ~912 m / ~1 112 m from the stop they can use — outside their shed, inside the
+  // 2 000 m walk ceiling. Measured here, and measured live in Lviv at 1 243 m: before 2026-11-03 the
+  // answer was "no routes" and the canonical PWA has no control that widens the shed.
   const accessRequest = request('2026-10-12T04:35:00Z', '2026-10-12T05:10:00Z');
-  accessRequest.origin = [24.0200, 49.8482];
-  assert.equal(findGtfsItinerariesWithStats(feed(), accessRequest).itineraries.length, 0,
-    'the default access walk shed must reject a stop more than 900 m away');
-  assert.equal(findGtfsItinerariesWithStats(feed(), {
-    ...accessRequest, maximumAccessWalkingMeters: 1200,
-  }).itineraries.length, 1, 'a caller may explicitly request a wider access walk shed');
+  accessRequest.origin = [24.0200, 49.8318];
+  const beyondAccessShed = findGtfsItinerariesWithStats(feed(), accessRequest);
+  assert.equal(beyondAccessShed.itineraries.length, 1, 'the access side falls back to its nearest stop too');
+  assert.equal(beyondAccessShed.walkReach?.originReachedWithinWalkingRadius, false,
+    'the shed is still measured and reported, so the longer walk is disclosed rather than hidden');
+  assert.equal(beyondAccessShed.walkReach?.nearestOriginStopMeters !== null
+    && beyondAccessShed.walkReach.nearestOriginStopMeters > DEFAULT_MAX_ACCESS_WALKING_METERS, true);
+
+  const widerAccessShed = findGtfsItinerariesWithStats(feed(), { ...accessRequest, maximumAccessWalkingMeters: 1200 });
+  assert.equal(widerAccessShed.walkReach?.originReachedWithinWalkingRadius, true,
+    'a caller may explicitly request a wider access walk shed');
+  assert.equal(widerAccessShed.itineraries.length, 1);
 
   const egressRequest = request('2026-10-12T04:55:00Z', '2026-10-12T05:30:00Z');
   egressRequest.destination = [24.0300, 49.8600];
-  assert.equal(findGtfsItinerariesWithStats(feed(), egressRequest).itineraries.length, 0,
-    'the default egress walk shed must reject a stop more than 1,000 m away');
-  assert.equal(findGtfsItinerariesWithStats(feed(), {
-    ...egressRequest, maximumEgressWalkingMeters: 1200,
-  }).itineraries.length, 1, 'a caller may explicitly request a wider egress walk shed');
+  const beyondEgressShed = findGtfsItinerariesWithStats(feed(), egressRequest);
+  assert.equal(beyondEgressShed.walkReach?.destinationReachedWithinWalkingRadius, false,
+    'the egress shed is a separate number and is reported separately');
+  assert.equal(beyondEgressShed.itineraries.length, 1);
+  assert.equal(findGtfsItinerariesWithStats(feed(), { ...egressRequest, maximumEgressWalkingMeters: 1200 })
+    .walkReach?.destinationReachedWithinWalkingRadius, true);
+
+  // Beyond the ceiling nothing is admitted: the search says how far away the nearest stop is instead
+  // of pretending the passenger could walk there, so "move the pin" stays a real instruction.
+  const unreachable = request('2026-10-12T04:55:00Z', '2026-10-12T05:30:00Z');
+  unreachable.destination = [24.0300, 49.8700];
+  const refused = findGtfsItinerariesWithStats(feed(), unreachable);
+  assert.equal(refused.itineraries.length, 0, 'a stop beyond every allowed walk is not planned from');
+  assert.equal(refused.walkReach?.destinationStopsFound, false);
+  assert.ok(refused.walkReach && refused.walkReach.nearestDestinationStopMeters !== null
+    && refused.walkReach.nearestDestinationStopMeters > MAX_PREFERENCE_WALKING_RADIUS_METERS,
+  `expected the nearest stop beyond ${MAX_PREFERENCE_WALKING_RADIUS_METERS} m, measured ${refused.walkReach?.nearestDestinationStopMeters}`);
 });
 
 test('finds service after midnight when GTFS uses a 24-hour stop time', () => {
@@ -2066,19 +2155,21 @@ test('normalizes GTFS rail and ferry journeys into supported journey modes', () 
 test('keeps boarding, intermediate, and alighting calls for every selectable GTFS mode', () => {
   const interval = request('2026-10-12T04:55:00Z', '2026-10-12T05:30:00Z');
   const cases = [
-    { name: 'City bus', routeType: '3', mode: 'BUS', transportType: 'bus' },
-    { name: 'Маршрутка № 5', routeType: '3', mode: 'MINIBUS', transportType: 'marshrutka' },
-    { name: 'City trolleybus', routeType: '11', mode: 'TROLLEYBUS', transportType: 'trolleybus' },
-    { name: 'City tram', routeType: '0', mode: 'TRAM', transportType: 'tram' },
-    { name: 'City metro', routeType: '1', mode: 'METRO', transportType: 'metro' },
-    { name: 'Regional train', routeType: '2', mode: 'RAIL', transportType: 'train' },
+    { name: 'City bus', routeName: 'Route 5', routeType: '3', mode: 'BUS', transportType: 'bus_unspecified' },
+    { name: 'Extended city bus', routeName: 'Автобус № 715', routeType: '715', mode: 'BUS', transportType: 'bus' },
+    { name: 'Маршрутка № 5', routeName: 'Маршрутка № 5', routeType: '3', mode: 'MINIBUS', transportType: 'marshrutka' },
+    { name: 'City trolleybus', routeName: 'Тролейбус № 11', routeType: '11', mode: 'TROLLEYBUS', transportType: 'trolleybus' },
+    { name: 'City tram', routeName: 'Трамвай № 1', routeType: '0', mode: 'TRAM', transportType: 'tram' },
+    { name: 'City metro', routeName: 'Метро', routeType: '1', mode: 'METRO', transportType: 'metro' },
+    { name: 'Regional train', routeName: 'Regional train', routeType: '2', mode: 'RAIL', transportType: 'train' },
   ] as const;
 
   for (const item of cases) {
-    const journeys = findGtfsItineraries(feed({ routeType: item.routeType, routeName: item.name, withIntermediate: true }), {
+    const journeys = findGtfsItineraries(feed({ routeType: item.routeType, routeName: item.routeName, withIntermediate: true }), {
       ...interval,
       allowedModes: [item.mode],
-      allowedTransportTypes: [item.transportType],
+      // User preferences use public categories; neutral feed types still map to bus.
+      allowedTransportTypes: [item.transportType === 'bus_unspecified' ? 'bus' : item.transportType],
       maximumStopDistanceMeters: 100,
     });
     const segment = journeys[0]?.segments[0];
@@ -2106,10 +2197,14 @@ test('maps city and suburban rail into the canonical train category and excludes
   const intercityBus = findGtfsItineraries(feed({ routeType: '3', routeName: 'Міжміський автобус' }), {
     ...interval, allowedModes: ['BUS'], allowedTransportTypes: ['bus'], maximumStopDistanceMeters: 2000,
   });
+  const extendedMinibus = findGtfsItineraries(feed({ routeType: '1501', routeName: 'Route 5' }), {
+    ...interval, allowedModes: ['MINIBUS'], allowedTransportTypes: ['marshrutka'], maximumStopDistanceMeters: 2000,
+  });
   assert.equal(cityTrain[0]?.segments[0]?.transportType, 'city_train');
   assert.equal(suburbanTrain[0]?.segments[0]?.transportType, 'suburban_train');
   assert.equal(funicular.length, 0, 'funicular has no user-selectable product category');
   assert.equal(minibus[0]?.segments[0]?.mode, 'MINIBUS');
+  assert.equal(extendedMinibus[0]?.segments[0]?.transportType, 'marshrutka');
   assert.equal(intercityBus[0]?.segments[0]?.transportType, 'intercity_bus');
 });
 
@@ -2118,7 +2213,7 @@ test('does not classify bus or trolleybus routes containing “Кільцева�
   const trolleybus = feed({ routeType: '11', routeName: 'Тролейбус Кільцева' });
   const cityRail = feed({ routeType: '2', routeName: 'Міська електричка Кільцева' });
 
-  assert.equal(bus.routes.get('r')?.transportType, 'bus');
+  assert.equal(bus.routes.get('r')?.transportType, 'bus_unspecified');
   assert.equal(trolleybus.routes.get('r')?.transportType, 'trolleybus');
   assert.equal(cityRail.routes.get('r')?.transportType, 'city_train');
 });
@@ -3224,7 +3319,37 @@ test('keeps nearest stops, represents distinct routes, and reports the bounded s
     && itinerary.segments[0].providerId === 'rail'));
   assert.ok(result.itineraries.some((itinerary) => itinerary.segments.length === 1
     && itinerary.segments[0].routeId.endsWith(':r2')), 'the distinct bus route at the 21st-nearest stop must remain searchable');
-  assert.equal(result.searchTruncated, true);
+  assert.equal(result.truncation.stopSelection, true,
+    'omitting candidate stops can alter access/departure/transfer paths even when the line is otherwise represented');
+
+  const denseTexts: Record<string, string> = {
+    'agency.txt': 'agency_id,agency_name,agency_url,agency_timezone\na,Test,https://example.test,Europe/Kyiv',
+    'routes.txt': ['route_id,agency_id,route_short_name,route_long_name,route_type',
+      ...Array.from({ length: 60 }, (_, index) => `r${index},a,${index},Route ${index},3`)].join('\n'),
+    'trips.txt': ['route_id,service_id,trip_id,trip_headsign',
+      ...Array.from({ length: 60 }, (_, index) => `r${index},weekday,t${index},Headsign ${index}`)].join('\n'),
+    'stops.txt': ['stop_id,stop_name,stop_lat,stop_lon',
+      ...Array.from({ length: 60 }, (_, index) => `o${index},Origin ${index},49.8401,${(24.0201 + index * 0.000001).toFixed(7)}`),
+      ...Array.from({ length: 60 }, (_, index) => `d${index},Destination ${index},49.8501,${(24.0301 + index * 0.000001).toFixed(7)}`)].join('\n'),
+    'stop_times.txt': ['trip_id,arrival_time,departure_time,stop_id,stop_sequence,pickup_type,drop_off_type',
+      ...Array.from({ length: 60 }, (_, index) => [
+        `t${index},08:00:00,08:00:00,o${index},1,0,0`,
+        `t${index},08:40:00,08:40:00,d${index},2,0,0`,
+      ]).flat()].join('\n'),
+    'calendar.txt': 'service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date\nweekday,1,0,0,0,0,0,0,20261001,20261031',
+  };
+  const denseRoutes = parseGtfsTimetable(Object.fromEntries(
+    Object.entries(denseTexts).map(([name, text]) => [name, new TextEncoder().encode(text)]),
+  ))!;
+  const dense = findGtfsItinerariesWithStats(mergeGtfsTimetables([
+    { providerId: 'dense-city', providerName: 'Dense city routes', providerCity: 'Львів', feed: denseRoutes },
+  ])!, {
+    ...request('2026-10-12T04:55:00Z', '2026-10-12T05:30:00Z'),
+    maximumStopDistanceMeters: 1000,
+    maximumTransfers: 0,
+  });
+  assert.equal(dense.truncation.stopSelection, true,
+    'when the per-side cap stops before 60 distinct route patterns are represented, the omission is a real coverage loss');
 });
 
 test('composes across provider feeds using equivalent Kyiv timezone names and closely matched stops', () => {

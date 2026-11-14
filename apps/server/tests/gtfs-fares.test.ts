@@ -1,6 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { calculateGtfsItineraryFare, parseGtfsFares, scaleGtfsFareForPassengers, type GtfsFareLeg } from '../server/journey/gtfsFares';
+import {
+  calculateGtfsItineraryFare,
+  indexGtfsFareProducts,
+  parseGtfsFares,
+  priceStatusFor,
+  scaleGtfsFareForPassengers,
+  type GtfsFareLeg,
+} from '../server/journey/gtfsFares';
 import { findGtfsItineraries, mergeGtfsTimetables, parseGtfsTimetable, type GtfsTimetableFeed } from '../server/journey/gtfsTimetable';
 
 const encode = (value: string) => new TextEncoder().encode(value);
@@ -11,6 +18,23 @@ function fareLeg(routeId: string, departure: string, arrival: string, overrides:
     traveledZoneIds: [], ...overrides,
   };
 }
+
+test('route index retains matching and unrestricted products while excluding other routes', () => {
+  const fares = parseGtfsFares({
+    'fare_attributes.txt': encode('fare_id,price,currency_type,payment_method,transfers,transfer_duration\nbus,1.00,UAH,0,,\nrail,0.50,UAH,0,,\nany,3.00,UAH,0,,'),
+    'fare_rules.txt': encode('fare_id,route_id\nbus,bus\nrail,rail'),
+  });
+  const index = indexGtfsFareProducts(fares.products, fares.rules);
+  const result = calculateGtfsItineraryFare(
+    fares,
+    [fareLeg('bus', '2026-10-12T05:00:00Z', '2026-10-12T05:20:00Z')],
+    index,
+  );
+  assert.deepEqual(index.unrestricted.map(({ product }) => product.id), ['any']);
+  assert.deepEqual(index.byRouteId.get('bus')?.map(({ product }) => product.id), ['bus']);
+  assert.equal(result?.priceMinor, 100);
+  assert.equal(result?.allocations[0]?.fareProductId, 'bus');
+});
 
 test('prices a multi-leg itinerary with one ticket when the GTFS transfer limit permits it', () => {
   const fares = parseGtfsFares({
@@ -107,4 +131,13 @@ test('feed fares survive provider namespacing and price the composed scheduled i
   assert.ok(itinerary);
   assert.equal(itinerary.fare?.priceMinor, 4200);
   assert.equal(itinerary.fare?.currency, 'UAH');
+});
+
+test('a price label without an amount is never reported as an estimate', () => {
+  // Live defect: a Lviv journey returned priceMinor:null with priceStatus:'ESTIMATED'.
+  assert.equal(priceStatusFor(3000), 'ESTIMATED');
+  assert.equal(priceStatusFor(0), 'ESTIMATED', 'a genuinely free leg is not an unknown price');
+  assert.equal(priceStatusFor(null), 'UNKNOWN', 'an unknown fare is not zero and not an estimate');
+  assert.equal(priceStatusFor(undefined), 'UNKNOWN', 'a fare this search cannot price stays unknown');
+  assert.equal(priceStatusFor(Number.NaN), 'UNKNOWN');
 });

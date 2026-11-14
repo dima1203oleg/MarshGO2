@@ -8,6 +8,7 @@ import {
   type RealtimeSocket,
   type RealtimeStatus,
 } from './realtimeChannel';
+import { withAuthRefreshLock } from './authRefreshLock';
 import type { TransitZoneGeometry, VehiclePriority } from '../map/transportVisualZones';
 
 export interface TransitArrival {
@@ -441,6 +442,7 @@ export type ApiStoredJourney = {
   }>;
 };
 export type GeoJsonCollection = { type: 'FeatureCollection'; features: Array<{ type: 'Feature'; properties: Record<string, unknown>; geometry: { type: string; coordinates: unknown } }> };
+export type ApiRouteProgressStatus = 'RELIABLE' | 'UNCERTAIN' | 'OFF_ROUTE';
 export type ApiNavigationSession = {
   id: string; state: 'active' | 'paused' | 'ended'; destination_name: string | null;
   route_distance_m: number | null; route_duration_s: number | null; route_version: number; opt_in: boolean;
@@ -449,6 +451,8 @@ export type ApiNavigationSession = {
   /** Turn-by-turn steps of the current route (absent on older servers). */
   maneuvers?: import('../../shared/navigation/contracts').Maneuver[];
   current_location: [number, number] | null; current_location_accuracy_m: number | null; current_location_at: string | null;
+  progress_status: ApiRouteProgressStatus | null; progress_ordinal: number | null; progress_fraction: number | null;
+  last_reliable_fix_at: string | null;
 };
 export type ApiNavigationMatch = {
   id: string; demand_id: string; status: 'suggested' | 'driver_interested' | 'passenger_confirmed' | 'dismissed' | 'expired';
@@ -538,7 +542,7 @@ async function requestEnvelope<T>(path: string, init: RequestInit = {}, retryAut
     // link does not sign anyone out.
     const ownsSession = () => tokenUsed === accessToken;
     try {
-      refreshInFlight ??= requestEnvelope<{ user: ApiUser; accessToken: string }>('/auth/refresh', { method: 'POST' }, false)
+      refreshInFlight ??= withAuthRefreshLock(() => requestEnvelope<{ user: ApiUser; accessToken: string }>('/auth/refresh', { method: 'POST' }, false))
         .then((refreshed) => {
           if (ownsSession()) {
             accessToken = refreshed.data.accessToken;
@@ -548,7 +552,7 @@ async function requestEnvelope<T>(path: string, init: RequestInit = {}, retryAut
         .finally(() => { refreshInFlight = null; });
       await refreshInFlight;
       return requestEnvelope<T>(path, init, false);
-    } catch (error) {
+    } catch {
       if (!ownsSession()) return requestEnvelope<T>(path, init, false);
       accessToken = null;
     }
@@ -635,10 +639,10 @@ export const productionApi = {
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), 8_000);
     try {
-      const session = await request<{ user: ApiUser; accessToken: string }>('/auth/refresh', {
+      const session = await withAuthRefreshLock(() => request<{ user: ApiUser; accessToken: string }>('/auth/refresh', {
         method: 'POST',
         signal: controller.signal,
-      });
+      }));
       accessToken = session.accessToken;
       return session.user;
     } catch (error) {
@@ -822,8 +826,8 @@ export const productionApi = {
     );
   },
   navigationSession(id: string) { return request<ApiNavigationSession>(`/navigation/sessions/${id}`); },
-  sendNavigationLocation(id: string, input: { coordinates: [number, number]; accuracyMeters: number; capturedAt: string }) {
-    return request<{ accepted: boolean; onRoute: boolean; capturedAt: string }>(`/navigation/sessions/${id}/location`, {
+  sendNavigationLocation(id: string, input: { coordinates: [number, number]; accuracyMeters: number; capturedAt: string; headingDeg?: number }) {
+    return request<{ accepted: boolean; onRoute: boolean; capturedAt: string; progressStatus: ApiRouteProgressStatus | null; progressOrdinal: number | null; progressFraction: number | null }>(`/navigation/sessions/${id}/location`, {
       method: 'POST', body: JSON.stringify(input),
     });
   },
@@ -849,8 +853,10 @@ export const productionApi = {
   agreeProposal(proposalId: string) {
     return request<ApiProposal>(`/proposals/${proposalId}/agree`, { method: 'POST' });
   },
-  acceptProposal(proposalId: string) {
-    return request<ApiBooking>(`/proposals/${proposalId}/accept`, { method: 'POST' });
+  acceptProposal(proposalId: string, expectedRevision: number) {
+    return request<ApiBooking>(`/proposals/${proposalId}/accept`, {
+      method: 'POST', body: JSON.stringify({ expectedRevision }),
+    });
   },
   cancelDemand(demandId: string) {
     return request<{ id: string; status: string }>(`/demands/${demandId}/cancel`, { method: 'POST' });

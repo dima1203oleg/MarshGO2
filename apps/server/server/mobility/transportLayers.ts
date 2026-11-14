@@ -4,9 +4,7 @@ import { z } from 'zod';
 import { cacheKey, smartCache } from '../cache/cacheService';
 import { fetchBinary, fetchJson, UnsafeUrlError } from './safeFetch';
 import { parseCsvLine, routeTypeLabel } from './gtfs';
-import { fetchGtfsFiles } from './gtfsComponents';
-import { extractVehicleList, vehicleTransportLabel } from './jsonVehicles';
-import { pointIsInsideUkraine } from './gbfs';
+import { extractVehicleList, matchJsonVehicleRoute } from './jsonVehicles';
 import { bboxOf, type Bbox } from './types';
 import { isFreshMobilityTimestamp, LIVE_MOBILITY_MAX_AGE_MS, parseMobilityTimestamp } from './timestamps';
 
@@ -31,6 +29,7 @@ export const networkSchema = z.object({
   bbox: z.tuple([z.number().finite().min(-180).max(180), z.number().finite().min(-90).max(90), z.number().finite().min(-180).max(180), z.number().finite().min(-90).max(90)]).nullable(),
 });
 export const NETWORK_CACHE_SCHEMA_VERSION = 2;
+export const GEOJSON_NETWORK_NORMALIZER_VERSION = 2;
 
 function rows(text: string | undefined): Array<Record<string, string>> {
   if (!text) return [];
@@ -145,7 +144,7 @@ export function buildGeoJsonNetwork(body: unknown, mode: LineType): TransportNet
   const groups = new Map<string, { name: string; direction: string; order: number; coordinates: Array<[number, number]>; from?: string; to?: string }[]>();
   const stops: NetworkStop[] = [];
   const points: Array<[number, number]> = [];
-  for (const raw of features) {
+  for (const [featureIndex, raw] of features.entries()) {
     if (!raw || typeof raw !== 'object') continue;
     const feature = raw as { geometry?: { type?: string; coordinates?: unknown }; properties?: Record<string, unknown> };
     const props = feature.properties ?? {};
@@ -160,21 +159,32 @@ export function buildGeoJsonNetwork(body: unknown, mode: LineType): TransportNet
       points.push([lon, lat]);
       continue;
     }
-    if (geometry?.type !== 'LineString' || !Array.isArray(geometry.coordinates)) continue;
-    const coordinates = geometry.coordinates.flatMap((point): Array<[number, number]> => {
-      if (!Array.isArray(point) || point.length < 2) return [];
-      const lon = Number(point[0]), lat = Number(point[1]);
-      return Number.isFinite(lon) && Number.isFinite(lat) && Math.abs(lon) <= 180 && Math.abs(lat) <= 90 && (lon !== 0 || lat !== 0) ? [[lon, lat]] : [];
-    });
-    if (coordinates.length < 2) continue;
-    const name = String(props.num_route ?? props.route_short_name ?? props.line ?? props.name ?? '').trim();
+    const lineParts = geometry?.type === 'LineString' && Array.isArray(geometry.coordinates)
+      ? [geometry.coordinates]
+      : geometry?.type === 'MultiLineString' && Array.isArray(geometry.coordinates)
+        ? geometry.coordinates.filter(Array.isArray)
+        : [];
+    if (lineParts.length === 0) continue;
+    const name = String(props.num_route ?? props.route_short_name ?? props.route_name ?? props.route ?? props.line ?? props.name ?? '').trim();
     if (!name) continue;
     const direction = String(props.napryamok ?? props.direction ?? props.to_stop_ ?? '').trim();
-    const key = `${name}|${direction}`;
-    const list = groups.get(key) ?? [];
-    list.push({ name, direction, order: Number(props.order_ ?? props.sequence ?? 0), coordinates,
-      ...(props.from_stop_ ? { from: String(props.from_stop_) } : {}), ...(props.to_stop_ ? { to: String(props.to_stop_) } : {}) });
-    groups.set(key, list);
+    const featureId = String((feature as { id?: unknown }).id ?? props.objectid ?? props.globalid ?? `feature-${featureIndex}`);
+    lineParts.forEach((part, partIndex) => {
+      const coordinates = part.flatMap((point): Array<[number, number]> => {
+        if (!Array.isArray(point) || point.length < 2) return [];
+        const lon = Number(point[0]), lat = Number(point[1]);
+        return Number.isFinite(lon) && Number.isFinite(lat) && Math.abs(lon) <= 180 && Math.abs(lat) <= 90 && (lon !== 0 || lat !== 0) ? [[lon, lat]] : [];
+      });
+      if (coordinates.length < 2) return;
+      // A MultiLineString may contain disjoint alternatives. Keep each path separate
+      // instead of flattening it into a false straight connector on the map.
+      const pathSuffix = lineParts.length > 1 ? `|${featureId}:${partIndex}` : '';
+      const key = `${name}|${direction}${pathSuffix}`;
+      const list = groups.get(key) ?? [];
+      list.push({ name, direction, order: Number(props.order_ ?? props.sequence ?? 0), coordinates,
+        ...(props.from_stop_ ? { from: String(props.from_stop_) } : {}), ...(props.to_stop_ ? { to: String(props.to_stop_) } : {}) });
+      groups.set(key, list);
+    });
   }
   const routes: NetworkRoute[] = [];
   for (const [key, segments] of groups) {
@@ -201,16 +211,17 @@ export function cachedNetwork(providerId: string, url: string, sourceVersion?: s
     maxL2Bytes: 8 * 1024 * 1024,
     shared: Boolean(version),
   }, async () => {
+    const { data } = await fetchBinary(url, 60 * 1024 * 1024);
+    const unzipped = unzipSync(data, { filter: (file) => WANTED.test(file.name) && file.originalSize < 200 * 1024 * 1024 });
     const files: Record<string, string> = {};
-    const gtfsFiles = await fetchGtfsFiles(url, 60 * 1024 * 1024);
-    for (const [name, content] of Object.entries(gtfsFiles)) if (WANTED.test(name)) files[name] = strFromU8(content);
+    for (const [name, content] of Object.entries(unzipped)) files[name.split('/').pop() as string] = strFromU8(content);
     return buildNetwork(files);
   });
 }
 
 export function cachedGeoJsonNetwork(providerId: string, url: string, mode: LineType, sourceVersion?: string | null): Promise<TransportNetwork> {
   const version = sourceVersion?.trim() || null;
-  return smartCache.getOrLoad('gtfs_network', { providerId, url, mode, sourceVersion: version, schemaVersion: NETWORK_CACHE_SCHEMA_VERSION }, networkSchema, {
+  return smartCache.getOrLoad('gtfs_network', { providerId, url, mode, sourceVersion: version, schemaVersion: NETWORK_CACHE_SCHEMA_VERSION, geoJsonNormalizerVersion: GEOJSON_NETWORK_NORMALIZER_VERSION }, networkSchema, {
     ttlMs: NETWORK_TTL_MS,
     l1TtlMs: version ? 10 * 60_000 : 60_000,
     maxL2Bytes: 8 * 1024 * 1024,
@@ -222,8 +233,9 @@ export function cachedGeoJsonNetwork(providerId: string, url: string, mode: Line
 }
 
 export function geoJsonMode(name: string): LineType | null {
-  const normalized = name.toLocaleLowerCase('uk');
-  if (normalized.includes('routeTaxi'.toLocaleLowerCase('uk')) || normalized.includes('маршрут')) return 'marshrutka';
+  const normalized = name.normalize('NFKC').toLocaleLowerCase('uk').replace(/\s+/g, ' ').trim();
+  const explicitMarshrutka = /(?:^|[^а-яіїєґa-z0-9])(?:route[\s_-]?taxi|minibus|маршрут(?:ка|ки|ку|ці|ок)|маршрутне\s+таксі|маршрутні\s+таксі)(?:$|[^а-яіїєґa-z0-9])/u;
+  if (explicitMarshrutka.test(normalized)) return 'marshrutka';
   if (normalized.includes('метро') || normalized.includes('underground')) return 'metro';
   if (normalized.includes('фунікулер') || normalized.includes('funicular')) return 'funicular';
   if (normalized.includes('електричк') || normalized.includes('city express') || normalized.includes('кільцев')) return 'city_train';
@@ -249,13 +261,29 @@ export interface LiveVehicle {
   tripId?: string; routeId?: string; startDate?: string; currentStopSequence?: number; currentStopId?: string;
 }
 
-/** Keep feeds registered for one country from leaking out-of-country vehicle positions into unrelated map viewports. */
-export function filterVehiclesToCountry(vehicles: LiveVehicle[], expectedCountry?: string): LiveVehicle[] {
-  return expectedCountry === 'UA' ? vehicles.filter((vehicle) => pointIsInsideUkraine([vehicle.lon, vehicle.lat])) : vehicles;
-}
-
 export function parseVehicleTimestamp(value: unknown): Date | null {
   return parseMobilityTimestamp(value);
+}
+
+/** Convert JSON feed records into live-map vehicles, retaining route identity only when it is confirmed. */
+export function parseJsonVehicles(
+  providerId: string,
+  body: unknown,
+  routeNames: ReadonlyMap<string, { name: string; type: LineType }>,
+): LiveVehicle[] {
+  const out: LiveVehicle[] = [];
+  for (const vehicle of extractVehicleList(body)) {
+    const lat = Number(vehicle.latitude ?? vehicle.lat), lon = Number(vehicle.longitude ?? vehicle.lon ?? vehicle.lng);
+    if (!Number.isFinite(lat) || Math.abs(lat) > 90 || !Number.isFinite(lon) || Math.abs(lon) > 180 || (lat === 0 && lon === 0)) continue;
+    const route = matchJsonVehicleRoute(vehicle, routeNames);
+    const bearing = Number(vehicle.bearing ?? vehicle.course ?? vehicle.azimuth);
+    const speed = Number(vehicle.speed ?? vehicle.speed_mps);
+    out.push({ id: `${providerId}:${String(vehicle.vehicle_id ?? vehicle.id ?? vehicle.license_plate ?? `${lat},${lon}`)}`, lon, lat,
+      type: asLineType(route.type) ?? 'other', route: route.route, ...(route.routeId ? { routeId: route.routeId } : {}),
+      bearing: Number.isFinite(bearing) ? bearing : null, speed: Number.isFinite(speed) && speed >= 0 ? speed : null,
+      timestamp: parseVehicleTimestamp(vehicle.timestamp ?? vehicle.updated_at ?? vehicle.last_update ?? vehicle.time), providerId });
+  }
+  return out;
 }
 
 export function isFreshVehicleTimestamp(timestamp: Date | null, now = Date.now()): boolean {
@@ -346,34 +374,23 @@ export function parseGtfsRealtimeVehicles(
   return out;
 }
 
-async function loadVehicles(providerId: string, sourceType: string, url: string, routeNames: Map<string, { name: string; type: LineType }>, expectedCountry?: string): Promise<LiveVehicle[]> {
+async function loadVehicles(providerId: string, sourceType: string, url: string, routeNames: Map<string, { name: string; type: LineType }>): Promise<LiveVehicle[]> {
   if (sourceType === 'gtfs_rt') {
     const { data } = await fetchBinary(url, 10 * 1024 * 1024);
-    return filterVehiclesToCountry(parseGtfsRealtimeVehicles(providerId, data, routeNames), expectedCountry);
+    return parseGtfsRealtimeVehicles(providerId, data, routeNames);
   }
   const body = (await fetchJson(url, 12000)).data;
-  const out: LiveVehicle[] = [];
-  for (const vehicle of extractVehicleList(body)) {
-    const lat = Number(vehicle.latitude ?? vehicle.lat), lon = Number(vehicle.longitude ?? vehicle.lon ?? vehicle.lng);
-    if (!Number.isFinite(lat) || Math.abs(lat) > 90 || !Number.isFinite(lon) || Math.abs(lon) > 180 || (lat === 0 && lon === 0)) continue;
-    const label = vehicleTransportLabel(vehicle);
-    const bearing = Number(vehicle.bearing ?? vehicle.course ?? vehicle.azimuth);
-    const speed = Number(vehicle.speed ?? vehicle.speed_mps);
-    out.push({ id: `${providerId}:${String(vehicle.vehicle_id ?? vehicle.id ?? vehicle.license_plate ?? `${lat},${lon}`)}`, lon, lat, type: asLineType(label) ?? 'other',
-      route: String(vehicle.route_name ?? vehicle.route ?? vehicle.route_short_name ?? ''), bearing: Number.isFinite(bearing) ? bearing : null,
-      speed: Number.isFinite(speed) && speed >= 0 ? speed : null, timestamp: parseVehicleTimestamp(vehicle.timestamp ?? vehicle.updated_at ?? vehicle.last_update ?? vehicle.time), providerId });
-  }
-  return filterVehiclesToCountry(out, expectedCountry);
+  return parseJsonVehicles(providerId, body, routeNames);
 }
 
 /** Positions are shared between users for ten seconds so a busy map never multiplies requests to city feeds. */
 export function cachedVehicles(
   providerId: string, sourceType: string, url: string,
-  routeNames: Map<string, { name: string; type: LineType }>, expectedCountry?: string,
+  routeNames: Map<string, { name: string; type: LineType }>,
 ): Promise<LiveVehicle[]> {
   const hit = vehicleCache.get(providerId);
   if (hit && Date.now() - hit.at < VEHICLE_TTL_MS) return hit.promise;
-  const promise = loadVehicles(providerId, sourceType, url, routeNames, expectedCountry);
+  const promise = loadVehicles(providerId, sourceType, url, routeNames);
   vehicleCache.set(providerId, { at: Date.now(), promise });
   promise.catch(() => vehicleCache.delete(providerId));
   return promise;
@@ -400,8 +417,9 @@ export function buildRouteTypeEntries(routesText: string | undefined): RouteType
 const ROUTES_ONLY = /(^|\/)routes\.txt$/;
 
 async function loadGtfsRouteTypes(url: string): Promise<RouteTypeEntry[]> {
-  const files = await fetchGtfsFiles(url, 60 * 1024 * 1024);
-  const entry = Object.entries(files).find(([name]) => ROUTES_ONLY.test(name));
+  const { data } = await fetchBinary(url, 60 * 1024 * 1024);
+  const unzipped = unzipSync(data, { filter: (file) => ROUTES_ONLY.test(file.name) && file.originalSize < 64 * 1024 * 1024 });
+  const entry = Object.entries(unzipped).find(([name]) => ROUTES_ONLY.test(name));
   return buildRouteTypeEntries(entry ? strFromU8(entry[1]) : undefined);
 }
 

@@ -56,6 +56,7 @@ function candidateEnvFiles() {
     }
   } catch { /* plain checkout, or no git metadata: the candidates below still cover it */ }
   out.push(path.resolve(repoRoot, '..', '.env'));
+  out.push(path.resolve(repoRoot, '..', '..', '.env'));
   return [...new Set(out.filter(Boolean))];
 }
 

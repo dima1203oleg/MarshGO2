@@ -36,7 +36,7 @@ describe('home banner geometry and profile trust ink', () => {
     assert.match(source, /origin: 'Львів', city: 'Київ'/);
     assert.match(source, /aria-label=\{`Маршрут \$\{origin\} — \$\{city\}`\}/);
     assert.match(source, /onSearchDestination\(city, origin\)/);
-    assert.match(marketplace(), /onSearchDestination=\{\(city, from\) => \{\s*setOrigin\(from\);\s*setDestination\(city\);/);
+    assert.match(marketplace(), /onSearchDestination=\{\(city, from\) => \{\s*const fromPlace = localCityPlace\(from\);\s*const destinationPlace = localCityPlace\(city\);\s*setOrigin\(fromPlace\?\.label \?\? from\);\s*setDestination\(destinationPlace\?\.label \?\? city\);\s*setSearchOriginPlace\(fromPlace\);\s*setSearchDestinationPlace\(destinationPlace\);/);
     assert.match(css(), /\.home-popular-routes__row \{ flex: 0 0 auto; height: clamp\(7\.75rem, 16svh, 8\.6rem\); \}/);
   });
 
@@ -63,7 +63,12 @@ describe('home banner geometry and profile trust ink', () => {
     const panel = readFileSync('src/components/TransportTypesPanel.tsx', 'utf8');
     assert.doesNotMatch(panel, /truncate/, 'truncate cut «Маршрутка»/«Тролейбус» mid-word on 390px tiles');
     assert.match(panel, /transport-mode-tile__label w-full font-bold/, 'the label keeps its full-width wrap hook');
-    assert.match(css(), /@media \(max-width: 380px\) \{\s*\.transport-types-inline \.transport-mode-tile__label \{ font-size: \.625rem;/, 'narrow phones scale to the 10px floor, never below');
+    const labelRule = css().match(/\.transport-mode-grid--horizontal \.transport-mode-tile__label \{([^}]+)\}/)?.[1];
+    assert.ok(labelRule);
+    assert.match(labelRule, /overflow-wrap: anywhere;/);
+    assert.match(labelRule, /font-size: \.75rem;/);
+    assert.doesNotMatch(labelRule, /overflow: hidden|line-clamp/);
+    assert.doesNotMatch(css(), /\.transport-types-inline \.transport-mode-tile__label \{ font-size: \.625rem;/);
   });
 
   it('renders an unverified profile in neutral ink instead of the success colour', () => {

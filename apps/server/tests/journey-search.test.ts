@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { micromobilityEstimateOptions, parseJourneySearchRequest, transitProviderAllowed } from '../server/journey/search';
-import { JOURNEY_TRANSPORT_TYPES } from '../server/journey/types';
+import { parseJourneySearchRequest, transitProviderAllowed } from '../server/journey/search';
+import { JOURNEY_TRANSPORT_TYPES, journeyTransportTypeSelected } from '../server/journey/types';
 
 const now = new Date('2026-09-30T08:00:00.000Z');
 const request = {
@@ -23,6 +23,16 @@ describe('Journey search request validation', () => {
     assert.throws(() => parseJourneySearchRequest({ ...request, preferences: { allowedTransportTypes: ['funicular'] } }, now), /allowedTransportTypes is invalid/);
   });
 
+  it('accepts all twelve canonical categories from the journey selector in one request', () => {
+    const parsed = parseJourneySearchRequest({ ...request, preferences: { allowedTransportTypes: [...JOURNEY_TRANSPORT_TYPES] } }, now);
+    assert.deepEqual(parsed.preferences.allowedTransportTypes, JOURNEY_TRANSPORT_TYPES);
+  });
+
+  it('keeps an unresolved generic GTFS bus selectable as bus without relabeling it a marshrutka', () => {
+    assert.equal(journeyTransportTypeSelected('bus_unspecified', ['bus']), true);
+    assert.equal(journeyTransportTypeSelected('bus_unspecified', ['marshrutka']), false);
+  });
+
   it('normalizes a timezone-aware journey request and preserves coordinates', () => {
     const parsed = parseJourneySearchRequest(request, now);
     assert.deepEqual(parsed.origin, request.origin);
@@ -41,25 +51,10 @@ describe('Journey search request validation', () => {
     assert.equal(transitProviderAllowed(providersByType.preferences, 'tram', 'Інший провайдер — трамваї'), true);
     const canonicalRailProvider = parseJourneySearchRequest({ ...request, preferences: { allowedTransitProvidersByType: { train: ['УЗ'] } } }, now);
     assert.equal(transitProviderAllowed(canonicalRailProvider.preferences, 'city_train', 'УЗ — міська електричка'), true);
-  });
-
-  it('keeps per-mode rental provider choices separate and preserves the legacy shared allowlist', () => {
-    const parsed = parseJourneySearchRequest({ ...request, preferences: {
-      allowedProviderIds: ['shared-provider'],
-      allowedProviderIdsByType: { bike: ['bike-provider'], scooter: [] },
+    const rentalProvidersByType = parseJourneySearchRequest({ ...request, preferences: {
+      allowedProviderIdsByType: { bike: ['nextbike_ua'], scooter: ['zelectra'] },
     } }, now);
-    const sharedOptions = { departureAt: now, maxWalkToRentalMeters: 500, allowedProviderIds: ['shared-provider'] };
-    assert.deepEqual(micromobilityEstimateOptions(parsed.preferences, 'bike', sharedOptions), {
-      ...sharedOptions, allowedProviderIds: ['bike-provider'],
-    });
-    assert.equal(micromobilityEstimateOptions(parsed.preferences, 'scooter', sharedOptions), null, 'an explicit empty mode selection excludes that mode');
-
-    const legacy = parseJourneySearchRequest({ ...request, preferences: { allowedProviderIds: ['shared-provider'] } }, now);
-    assert.deepEqual(micromobilityEstimateOptions(legacy.preferences, 'bike', sharedOptions), sharedOptions);
-    assert.deepEqual(micromobilityEstimateOptions(legacy.preferences, 'scooter', sharedOptions), sharedOptions);
-
-    const unfiltered = parseJourneySearchRequest(request, now);
-    assert.deepEqual(micromobilityEstimateOptions(unfiltered.preferences, 'bike', sharedOptions), sharedOptions);
+    assert.deepEqual(rentalProvidersByType.preferences.allowedProviderIdsByType, { bike: ['nextbike_ua'], scooter: ['zelectra'] });
   });
 
   it('rejects invalid points, missing time zone, past departure, and unsupported preferences', () => {
@@ -72,8 +67,8 @@ describe('Journey search request validation', () => {
     assert.throws(() => parseJourneySearchRequest({ ...request, preferences: { allowedTransitProviders: [''] } }, now), /allowedTransitProviders is invalid/);
     assert.throws(() => parseJourneySearchRequest({ ...request, preferences: { allowedTransitProvidersByType: { ufo: ['Provider'] } } }, now), /allowedTransitProvidersByType is invalid/);
     assert.throws(() => parseJourneySearchRequest({ ...request, preferences: { allowedTransitProvidersByType: { plane: ['Provider'] } } }, now), /allowedTransitProvidersByType is invalid/);
-    assert.throws(() => parseJourneySearchRequest({ ...request, preferences: { allowedProviderIdsByType: { bus: ['provider'] } } }, now), /allowedProviderIdsByType is invalid/);
-    assert.throws(() => parseJourneySearchRequest({ ...request, preferences: { allowedProviderIdsByType: { bike: ['invalid provider'] } } }, now), /allowedProviderIdsByType is invalid/);
+    assert.throws(() => parseJourneySearchRequest({ ...request, preferences: { allowedProviderIdsByType: { taxi: ['provider'] } } }, now), /allowedProviderIdsByType is invalid/);
+    assert.throws(() => parseJourneySearchRequest({ ...request, preferences: { allowedProviderIdsByType: { scooter: ['not valid'] } } }, now), /allowedProviderIdsByType is invalid/);
     assert.throws(() => parseJourneySearchRequest({ ...request, strategy: 'FAKEST' }, now), /not supported/);
   });
 });

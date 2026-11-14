@@ -66,9 +66,9 @@ describe('API booking transaction (opt-in local integration test)', { skip: !ena
     if (process.env.API_TEST_GTFS_FIXTURE === '1') {
       await pool.query(`DELETE FROM mobility_providers WHERE name='MARSHGO HTTP GTFS integration fixture'
         AND city='Львів' AND feed_url='https://gtfs-api-fixture.invalid/lviv.zip'`);
-      await pool.query(`INSERT INTO mobility_providers(id,name,city,provider_type,source_type,feed_url,priority,status,health,access,last_report)
+      await pool.query(`INSERT INTO mobility_providers(id,name,city,provider_type,source_type,feed_url,priority,status,health,access,license,commercial_use,last_report)
         VALUES ($1,'MARSHGO HTTP GTFS integration fixture','Львів','public_transit','gtfs',
-          'https://gtfs-api-fixture.invalid/lviv.zip',1,'enabled','healthy','open',
+          'https://gtfs-api-fixture.invalid/lviv.zip',1,'enabled','healthy','open','CC BY 4.0',TRUE,
           '{"bbox":[23.9,49.7,24.15,49.95],"counts":{"routes_bus":1,"routes_tram":1}}'::jsonb)`, [ids.gtfsFixtureProvider]);
       const fixtureCandidate = await pool.query<{ id: string }>(`SELECT id FROM (
         SELECT id FROM mobility_providers
@@ -533,6 +533,26 @@ describe('API booking transaction (opt-in local integration test)', { skip: !ena
         [ids.transitCompositionOffer, ids.driver, ids.vehicle, offerOrigin[0], offerOrigin[1], offerDestination[0], offerDestination[1],
           offerRouteGeoJson, compositionDepartureAt, compositionArrivalAt, offerDistanceMeters, compositionDurationSeconds],
       );
+      const untrustedOfferSearch = await fetch(`${apiUrl}/api/v1/journeys/search`, {
+        method: 'POST', headers: { 'content-type': 'application/json', 'x-dev-user-id': compositionPassenger },
+        body: JSON.stringify({
+          origin: { name: 'API offer origin', coordinates: offerOrigin },
+          destination: { name: 'API offer destination', coordinates: offerDestination },
+          departureAt: compositionDepartureAt.toISOString(), passengers: 1, strategy: 'FASTEST',
+          preferences: { allowCommunity: true, allowedTransportTypes: ['carpool'] },
+        }),
+      });
+      assert.equal(untrustedOfferSearch.status, 200);
+      const untrustedOfferPayload = (await untrustedOfferSearch.json() as { data: { journeys: Array<{
+        offerId: string | null; legs: Array<{ mode: string; routeGeometry?: unknown; metadata?: Record<string, unknown> }>;
+      }> } }).data;
+      const untrustedOfferJourney = untrustedOfferPayload.journeys.find((journey) => journey.offerId === ids.transitCompositionOffer);
+      assert.ok(untrustedOfferJourney, 'an offer with an unknown route source may still be returned as an offer');
+      const untrustedCommunityLeg = untrustedOfferJourney.legs.find((leg) => leg.mode === 'COMMUNITY');
+      assert.ok(untrustedCommunityLeg);
+      assert.equal(untrustedCommunityLeg.routeGeometry, undefined, 'untrusted route_source must omit corridor geometry');
+      assert.equal(untrustedCommunityLeg.metadata?.routeGeometrySource, undefined);
+      await pool.query(`UPDATE offers SET route_source='osrm' WHERE id=$1`, [ids.transitCompositionOffer]);
       const composedSearch = await fetch(`${apiUrl}/api/v1/journeys/search`, {
         method: 'POST', headers: { 'content-type': 'application/json', 'x-dev-user-id': compositionPassenger },
         body: JSON.stringify({
@@ -545,7 +565,8 @@ describe('API booking transaction (opt-in local integration test)', { skip: !ena
       assert.equal(composedSearch.status, 200);
       const composedPayload = (await composedSearch.json() as { data: { candidateCount?: number; returnedCount?: number; partial: boolean; partialReasons: string[]; providerErrors?: string[]; blockedProviders?: string[]; resultsTruncated: boolean; candidateGenerationTruncated: boolean; resultSamplingTruncated: boolean; gtfsTruncation: Record<string, boolean>; journeys: Array<{
         id: string; offerId: string | null; source?: string; state: string;
-        legs: Array<{ id: string; mode: string; offerId: string | null; availabilityStatus: string }>;
+        legs: Array<{ id: string; mode: string; offerId: string | null; availabilityStatus: string; routeGeometry?: Array<[number, number]>;
+          metadata?: { routeGeometrySource?: string; routeGeometry?: Array<[number, number]>; stops?: unknown[] } }>;
       }> } });
       const composedData = composedPayload.data;
       assert.equal(typeof composedData.partial, 'boolean');
@@ -566,6 +587,51 @@ describe('API booking transaction (opt-in local integration test)', { skip: !ena
       assert.deepEqual(composedJourney.legs.map((leg) => leg.mode), ['BUS','COMMUNITY','TRAM']);
       assert.equal(composedJourney.legs[1]!.offerId, ids.transitCompositionOffer);
       assert.equal(composedJourney.legs[1]!.availabilityStatus, 'AVAILABLE');
+      assert.equal(composedJourney.legs[1]!.metadata?.routeGeometrySource, 'osrm-car-route',
+        'community route provenance is derived from the persisted OSRM offer source');
+
+      const composedJourneyRead = await fetch(`${apiUrl}/api/v1/journeys/${composedJourney.id}`, {
+        headers: { 'x-dev-user-id': compositionPassenger },
+      });
+      assert.equal(composedJourneyRead.status, 200);
+      const persistedComposition = (await composedJourneyRead.json() as { data: { legs: Array<{
+        id: string; metadata: { routeGeometrySource?: string; routeGeometry?: Array<[number, number]> };
+      }> } }).data;
+      const geometryTransitLegs = composedJourney.legs.filter((leg) => leg.mode !== 'COMMUNITY' && leg.mode !== 'WALK'
+        && (leg.routeGeometry?.length ?? 0) >= 2);
+      assert.ok(geometryTransitLegs.length > 0, 'the GTFS-composed fixture route includes source shape geometry');
+      for (const leg of geometryTransitLegs) {
+        assert.equal(leg.metadata?.routeGeometrySource, 'gtfs_shape',
+          'the immediate search response carries the verified geometry source');
+        assert.deepEqual(leg.metadata?.routeGeometry, leg.routeGeometry,
+          'the immediate response geometry matches the persisted provenance metadata');
+        const persistedLeg = persistedComposition.legs.find((candidate) => candidate.id === leg.id);
+        assert.ok(persistedLeg, `the selected GTFS leg ${leg.id} remains in the persisted journey`);
+        assert.deepEqual(persistedLeg.metadata.routeGeometry, leg.routeGeometry,
+          'journey reload preserves the GTFS route geometry returned by search');
+        assert.equal(persistedLeg.metadata.routeGeometrySource, 'gtfs_shape',
+          'journey reload preserves the trusted GTFS provenance required by live route rendering');
+      }
+
+      const stopBearingLeg = geometryTransitLegs.find((leg) => (leg.metadata?.stops?.length ?? 0) > 0);
+      assert.ok(stopBearingLeg, 'the fixture includes a shaped transit leg with real stop waypoints');
+      const retainedStops = stopBearingLeg.metadata!.stops!;
+      await pool.query(
+        `UPDATE journey_legs SET metadata=metadata||jsonb_build_object('routeGeometrySource','legacy-schematic-corridor') WHERE id=$1`,
+        [stopBearingLeg.id],
+      );
+      const legacyReadResponse = await fetch(`${apiUrl}/api/v1/journeys/${composedJourney.id}`, {
+        headers: { 'x-dev-user-id': compositionPassenger },
+      });
+      assert.equal(legacyReadResponse.status, 200);
+      const legacyRead = (await legacyReadResponse.json() as { data: { legs: Array<{
+        id: string; routeGeometry?: Array<[number, number]>; metadata: { routeGeometry?: Array<[number, number]>; stops?: unknown[] };
+      }> } }).data;
+      const sanitizedLegacyLeg = legacyRead.legs.find((leg) => leg.id === stopBearingLeg.id);
+      assert.ok(sanitizedLegacyLeg);
+      assert.equal(sanitizedLegacyLeg.routeGeometry, undefined, 'a legacy geometry with an incompatible source is not returned');
+      assert.equal(sanitizedLegacyLeg.metadata.routeGeometry, undefined, 'the stale metadata copy is also removed');
+      assert.deepEqual(sanitizedLegacyLeg.metadata.stops, retainedStops, 'authentic stop waypoints remain visible');
 
       const transferLimitedSearch = await fetch(`${apiUrl}/api/v1/journeys/search`, {
         method: 'POST', headers: { 'content-type': 'application/json', 'x-dev-user-id': compositionPassenger },
@@ -632,8 +698,8 @@ describe('API booking transaction (opt-in local integration test)', { skip: !ena
     assert.equal(result.data.partial, true);
     assert.ok(result.data.partialReasons.length > 0);
     assert.ok(result.data.blockedProviders.some((provider) => provider.startsWith('transportType:taxi:')));
-    assert.equal(result.data.blockedProviders.some((provider) => provider.startsWith('transportType:bus:')), !healthyLvivGtfsEnabled,
-      healthyLvivGtfsEnabled ? 'the enabled local GTFS bus feed is recognized' : 'a missing GTFS source is reported instead of being implied available');
+    // This Lviv→Stryi request is not the Lviv inner-city GTFS corridor search above.
+    // Citywide provider presence must not determine whether bus service is blocked for this OD.
     const communityJourneys = result.data.journeys.filter((item) => item.offerId === ids.journeyOffer);
     assert.equal(communityJourneys.length, 1);
     const journey = communityJourneys[0];
@@ -1460,7 +1526,7 @@ describe('API booking transaction (opt-in local integration test)', { skip: !ena
     });
     assert.equal(counter.status, 200);
     const prematureAccept = await fetch(`${apiUrl}/api/v1/proposals/${proposal.data.id}/accept`, {
-      method: 'POST', headers: headers(passengerA),
+      method: 'POST', headers: headers(passengerA), body: JSON.stringify({ expectedRevision: 2 }),
     });
     assert.equal(prematureAccept.status, 409);
     const agreedByDriver = await fetch(`${apiUrl}/api/v1/proposals/${proposal.data.id}/agree`, {
@@ -1475,8 +1541,30 @@ describe('API booking transaction (opt-in local integration test)', { skip: !ena
     assert.equal(proposalHistory.data[2].actor_role, 'driver');
     assert.equal(proposalHistory.data[2].price_minor, 15000);
 
+    const acceptanceSnapshot = async () => (await pool.query(
+      `SELECT p.status,p.revision_number,p.price_minor,d.status AS demand_status,
+        (SELECT count(*)::int FROM offers WHERE driver_id=$2) AS offers,
+        (SELECT count(*)::int FROM bookings WHERE passenger_id=$3) AS bookings,
+        (SELECT count(*)::int FROM conversations c JOIN bookings b ON b.id=c.booking_id WHERE b.passenger_id=$3) AS conversations,
+        (SELECT count(*)::int FROM audit_events WHERE entity_id=$1) AS audit_events,
+        (SELECT count(*)::int FROM realtime_outbox WHERE payload->>'proposal_id'=$1::text) AS events
+       FROM proposals p JOIN passenger_demands d ON d.id=p.demand_id WHERE p.id=$1`,
+      [proposal.data.id, ids.driver, passengerA],
+    )).rows[0];
+    const beforeAcceptance = await acceptanceSnapshot();
+    assert.ok(beforeAcceptance);
+    assert.equal(beforeAcceptance.revision_number, 3);
+    assert.equal(beforeAcceptance.price_minor, 15000);
+    assert.equal(beforeAcceptance.status, 'pending');
+    for (const [input, expectedStatus] of [[{}, 400], [{ expectedRevision: '3' }, 400], [{ expectedRevision: 1 }, 409], [{ expectedRevision: 2 }, 409]] as const) {
+      const rejectedAcceptance = await fetch(`${apiUrl}/api/v1/proposals/${proposal.data.id}/accept`, {
+        method: 'POST', headers: headers(passengerA), body: JSON.stringify(input),
+      });
+      assert.equal(rejectedAcceptance.status, expectedStatus);
+      assert.deepEqual(await acceptanceSnapshot(), beforeAcceptance, 'rejected acceptance must not alter price, inventory, booking, chat or events');
+    }
     const accepted = await fetch(`${apiUrl}/api/v1/proposals/${proposal.data.id}/accept`, {
-      method: 'POST', headers: headers(passengerA),
+      method: 'POST', headers: headers(passengerA), body: JSON.stringify({ expectedRevision: 3 }),
     });
     assert.equal(accepted.status, 201);
     const booking = await accepted.json() as { data: { id: string; total_price_minor: number; seat_count: number; platform_fee_minor: number; fee_class: string; fee_rule_version: string }; agreedTotalMinor: number };
@@ -1513,7 +1601,7 @@ describe('API booking transaction (opt-in local integration test)', { skip: !ena
       competingProposalIds.push((await competingProposalResponse.json() as { data: { id: string } }).data.id);
     }
     const simultaneousAccepts = await Promise.all(competingProposalIds.map(proposalId => fetch(`${apiUrl}/api/v1/proposals/${proposalId}/accept`, {
-      method: 'POST', headers: headers(passengerA),
+      method: 'POST', headers: headers(passengerA), body: JSON.stringify({ expectedRevision: 1 }),
     })));
     assert.deepEqual(simultaneousAccepts.map(response => response.status).sort(), [201, 409]);
     const raceState = await pool.query<{ demand_status: string; accepted_count: string; rejected_count: string; booking_count: string }>(
@@ -1620,7 +1708,7 @@ describe('API booking transaction (opt-in local integration test)', { skip: !ena
     ]);
 
     const duplicateAccept = await fetch(`${apiUrl}/api/v1/proposals/${proposal.data.id}/accept`, {
-      method: 'POST', headers: headers(passengerA),
+      method: 'POST', headers: headers(passengerA), body: JSON.stringify({ expectedRevision: 3 }),
     });
     assert.equal(duplicateAccept.status, 409);
     const matchedDemandReload = await fetch(`${apiUrl}/api/v1/demands/${proposal.data.demand_id}`, { headers: headers(ids.driver) });

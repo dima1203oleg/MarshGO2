@@ -13,7 +13,11 @@ describe('editing and cancelling a published trip (opt-in local integration test
   const pool = new Pool({ connectionString: databaseUrl });
   const driver = crypto.randomUUID(), passengerA = crypto.randomUUID(), passengerB = crypto.randomUUID(), stranger = crypto.randomUUID();
   const vehicle = crypto.randomUUID(), vehicleTwo = crypto.randomUUID(), smallVehicle = crypto.randomUUID(), offer = crypto.randomUUID();
-  const testPlates = Array.from({ length: 3 }, () => `EDIT${crypto.randomBytes(3).toString('hex').slice(0, 3).toUpperCase()}`);
+  const testPlates = (() => {
+    const plates = new Set<string>();
+    while (plates.size < 3) plates.add(`EDIT${crypto.randomInt(36 ** 4).toString(36).toUpperCase().padStart(4, '0')}`);
+    return [...plates];
+  })();
   const headers = (userId: string, extra: Record<string, string> = {}) => ({ 'content-type': 'application/json', 'x-dev-user-id': userId, ...extra });
   const call = (path: string, userId: string, method = 'GET', body?: unknown) => fetch(`${apiUrl}/api/v1${path}`, { method, headers: headers(userId), body: body === undefined ? undefined : JSON.stringify(body) });
   const departure = new Date(Date.now() + 3 * 86_400_000);
@@ -158,8 +162,8 @@ describe('editing and cancelling a published trip (opt-in local integration test
   });
 
   it('health monitor marks an unreachable source offline without changing the administrator’s status', async () => {
-    const { rows } = await pool.query<{ id: string }>(`INSERT INTO mobility_providers(name,city,provider_type,source_type,feed_url,status,health,access,country,last_checked_at)
-      VALUES($1,'Тест','public_transit','gtfs','https://unreachable.invalid/gtfs.zip','enabled','healthy','open','UA',now()-interval '10 years') RETURNING id`, [`Health monitor ${crypto.randomUUID()}`]);
+    const { rows } = await pool.query<{ id: string }>(`INSERT INTO mobility_providers(name,city,provider_type,source_type,feed_url,status,health,access,license,commercial_use,country,last_checked_at)
+      VALUES($1,'Тест','public_transit','gtfs','https://unreachable.invalid/gtfs.zip','enabled','healthy','open','CC BY 4.0',TRUE,'UA',now()-interval '10 years') RETURNING id`, [`Health monitor ${crypto.randomUUID()}`]);
     try {
       await refreshProviderHealth(pool, undefined, [rows[0]!.id]);
       const after = await pool.query<{ status: string; health: string; last_error: string | null }>('SELECT status,health,last_error FROM mobility_providers WHERE id=$1', [rows[0].id]);

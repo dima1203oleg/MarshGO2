@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
-  UKRAINE_REGIONS,
   getAllRegions,
   findRegion,
   findRegionByCoordinates,
@@ -202,6 +201,24 @@ describe('Ukraine 12 Canonical Transports across all 26 Regions', () => {
     const railChain = lvivToKyiv.find((c) => c.legs.some((l) => l.mode === 'RAIL'));
     assert.ok(railChain, 'Should have rail leg for Lviv to Kyiv');
     assert.ok(railChain.legs.length >= 3, 'Must have at least first-mile, rail, last-mile');
+
+    // Lviv → Odesa composes two rail corridors through Kyiv. The 30-minute connection is
+    // represented by the schedule gap; no synthetic 200 m walk may be drawn at one coordinate.
+    const lvivToOdesa = await composeUkraineMultimodalChains({
+      origin: { name: 'центр Львова', coordinates: [24.0315, 49.8418] },
+      destination: { name: 'центр Одеси', coordinates: [30.7233, 46.4825] },
+      departureAt: new Date(Date.now() + 3600_000),
+      passengers: 1,
+      strategy: 'BALANCED',
+      preferences: { allowPublicTransport: true, allowTaxi: true, allowedTransportTypes: ['train', 'tram', 'taxi'] },
+    });
+    const connectingChain = lvivToOdesa.find((candidate) => candidate.legs.filter((leg) => leg.mode === 'RAIL').length === 2);
+    assert.ok(connectingChain, 'Should retain a two-corridor rail journey via Kyiv');
+    assert.equal(connectingChain.transfers >= 1, true, 'The intercity change still counts as a transfer');
+    assert.equal(connectingChain.legs.some((leg) => leg.mode === 'WALK'
+      && leg.origin.coordinates[0] === leg.destination.coordinates[0]
+      && leg.origin.coordinates[1] === leg.destination.coordinates[1]), false,
+    'Must not invent a positive-distance walk between identical station coordinates');
   });
 
   it('generates intra-city transit itineraries across multiple Ukrainian oblast capitals', () => {

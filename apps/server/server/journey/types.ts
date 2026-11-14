@@ -10,7 +10,9 @@ export const JOURNEY_TRANSPORT_TYPES = ['bus','marshrutka','trolleybus','tram','
 export type JourneyTransportType = typeof JOURNEY_TRANSPORT_TYPES[number];
 
 const journeyTransportAliases: Partial<Record<JourneyTransportType, readonly string[]>> = {
-  bus: ['intercity_bus'],
+  // Generic GTFS route_type=3 remains selectable under the bus category, but
+  // its segment label stays neutral until a source can distinguish the service.
+  bus: ['intercity_bus', 'bus_unspecified'],
   train: ['suburban_train', 'city_train'],
 };
 
@@ -66,7 +68,7 @@ export interface JourneyPreferences {
   allowScooter?: boolean;
   /** Stable mobility operator IDs; empty/undefined means no provider filter. */
   allowedProviderIds?: string[];
-  /** Stable provider IDs scoped to the rental mode selected by the user. */
+  /** Per-mode rental provider filters; an absent mode means all verified providers for that mode. */
   allowedProviderIdsByType?: Partial<Record<'bike' | 'scooter', string[]>>;
   blockedProviderIds?: string[];
   maxWalkToRentalMeters?: number;

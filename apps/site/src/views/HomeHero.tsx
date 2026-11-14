@@ -26,9 +26,9 @@ const actions = [
 ] as const;
 
 const popularRoutes = [
-  { origin: 'Львів', city: 'Київ', position: '5%' },
-  { origin: 'Львів', city: 'Рівне', position: '50%' },
-  { origin: 'Львів', city: 'Тернопіль', position: '95%' },
+  { origin: 'Львів', city: 'Київ' },
+  { origin: 'Львів', city: 'Рівне' },
+  { origin: 'Львів', city: 'Тернопіль' },
 ] as const;
 
 function formatDeparture(value: string): string {
@@ -68,9 +68,16 @@ export function HomeHero({
   useLayoutEffect(() => {
     const measure = () => {
       const element = root.current;
-      if (!element || window.innerWidth >= 1024) { setAvailableHeight(null); return; }
-      const top = element.getBoundingClientRect().top + window.scrollY;
+      if (!element) { setAvailableHeight(null); return; }
       const shell = element.closest('.production-app');
+      // The phone fit reserves the fixed BOTTOM tab bar. Tablet and desktop navigate
+      // from a fixed left rail whose top is 0, so the same measurement would reserve
+      // the whole viewport and squeeze Home into its 300px floor. Only the phone
+      // shell (data-formfactor="mobile", the default when the attribute is absent)
+      // keeps the height-fitting behaviour.
+      const formFactor = shell?.getAttribute('data-formfactor') ?? 'mobile';
+      if (window.innerWidth >= 1024 || formFactor !== 'mobile') { setAvailableHeight(null); return; }
+      const top = element.getBoundingClientRect().top + window.scrollY;
       const viewport = window.visualViewport?.height ?? window.innerHeight;
       const tabbar = shell?.querySelector<HTMLElement>('.app-tabbar');
       const tabbarTop = tabbar && getComputedStyle(tabbar).position === 'fixed'
@@ -142,8 +149,8 @@ export function HomeHero({
     <section className="home-popular-routes mt-3 min-h-0" aria-labelledby="popular-routes-title">
       <div className="mb-2 flex items-center justify-between px-1"><h2 id="popular-routes-title" className="text-[15px] font-black text-[var(--mg-ink)]">Популярні напрямки</h2><button type="button" onClick={onSearchTrip} className="mg-press-subtle inline-flex min-h-11 items-center gap-1 text-[12px] font-bold text-blue-600">Показати всі <ChevronRight className="inline" size={13}/></button></div>
       <div className="home-popular-routes__row no-scrollbar flex gap-2.5 overflow-x-auto pb-1">
-        {popularRoutes.map(({ origin, city, position }) => <button key={city} type="button" aria-label={`Маршрут ${origin} — ${city}`} onClick={() => onSearchDestination(city, origin)} className="home-popular-route mg-press relative h-[68px] min-w-[108px] flex-1 overflow-hidden rounded-2xl border border-white/70 bg-slate-200 text-left shadow-sm">
-          <span aria-hidden="true" className="home-popular-route__reference-photo" style={{ backgroundPosition: `${position} 80%` }}/>
+        {popularRoutes.map(({ origin, city }) => <button key={city} type="button" aria-label={`Маршрут ${origin} — ${city}`} onClick={() => onSearchDestination(city, origin)} className="home-popular-route mg-press relative h-[68px] min-w-[108px] flex-1 overflow-hidden rounded-2xl border border-white/70 bg-slate-200 text-left shadow-sm">
+          <span aria-hidden="true" className="home-popular-route__reference-photo"/>
           <span className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/35 to-transparent"/>
           <span className="home-popular-route__label absolute inset-x-2 bottom-2 flex items-end justify-between gap-1 text-[12px] font-extrabold leading-tight text-white"><span>{origin} →<br/>{city}</span><ChevronRight size={14} className="shrink-0"/></span>
         </button>)}

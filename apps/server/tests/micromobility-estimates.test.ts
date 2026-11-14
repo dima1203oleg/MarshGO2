@@ -7,7 +7,6 @@ import {
   type RentalRouteNetwork,
   type RentalRoutePoint,
 } from '../server/journey/micromobilityEstimates';
-import { micromobilityEstimateOptions, parseJourneySearchRequest } from '../server/journey/search';
 
 const departureAt = new Date('2026-10-16T08:00:00+03:00');
 const bicycleNetwork: RentalRouteNetwork = {
@@ -37,30 +36,26 @@ test('bike estimates only use one owner-confirmed provider network and keep inve
   assert.deepEqual(estimates[0]?.legs.find((leg) => leg.mode === 'BICYCLE')?.routeGeometry, [[30.5, 50.45], [30.52, 50.45]]);
 });
 
-test('per-mode request provider choices reach the matching rental estimators', () => {
-  const parsed = parseJourneySearchRequest({
+test('rental provider filters stay isolated by mode', () => {
+  const bicycle = buildBicycleRouteEstimates({
     origin: { name: 'A', coordinates: [30.50, 50.45] },
     destination: { name: 'B', coordinates: [30.52, 50.45] },
-    departureAt: '2026-10-16T08:00:00+03:00', passengers: 1, strategy: 'BALANCED',
-    preferences: { allowedProviderIdsByType: { bike: ['nextbike_ua'], scooter: ['zelectra'] } },
-  }, new Date('2026-09-30T08:00:00Z'));
-  const baseOptions = { departureAt, maxWalkToRentalMeters: 500, maxCandidates: 6 };
-  const bikeOptions = micromobilityEstimateOptions(parsed.preferences, 'bike', baseOptions);
-  const scooterOptions = micromobilityEstimateOptions(parsed.preferences, 'scooter', baseOptions);
-  assert.ok(bikeOptions);
-  assert.ok(scooterOptions);
+    points,
+    networks: new Map([['nextbike-ua', bicycleNetwork]]),
+    options: { departureAt, maxWalkToRentalMeters: 500, maxCandidates: 6, allowedProviderIds: [], allowedProviderIdsByMode: { SCOOTER: ['zelectra'] } },
+  });
+  assert.equal(bicycle.length, 1);
+  assert.equal(bicycle[0]?.providerId, 'nextbike_ua');
 
-  const bikeEstimates = buildBicycleRouteEstimates({
+  const scooter = buildScooterRouteEstimates({
     origin: { name: 'A', coordinates: [30.50, 50.45] }, destination: { name: 'B', coordinates: [30.52, 50.45] },
-    points, networks: new Map([['nextbike-ua', bicycleNetwork]]), options: bikeOptions,
+    providers: [{ providerId: 'zelectra', providerName: 'Zelectra', networkId: 'zelectra-66', snapshot: allowedZone(),
+      assets: [{ location: [30.50, 50.45] as [number, number], available: true, vehicleTypeId: 'scooter' }] }],
+    options: { departureAt, maxWalkToRentalMeters: 300, maxCandidates: 6, allowedProviderIds: [], allowedProviderIdsByMode: { BICYCLE: ['nextbike_ua'] } },
+    now: Date.parse('2026-10-16T05:00:00Z'),
   });
-  const scooterEstimates = buildScooterRouteEstimates({
-    origin: { name: 'A', coordinates: [30.50, 50.45] }, destination: { name: 'B', coordinates: [30.52, 50.45] },
-    providers: [{ providerId: 'zelectra', providerName: 'Zelectra', networkId: 'zelectra-66', snapshot: allowedZone() }],
-    options: scooterOptions, now: Date.parse('2026-10-16T05:00:00Z'),
-  });
-  assert.deepEqual(bikeEstimates.map((estimate) => estimate.providerId), ['nextbike_ua']);
-  assert.deepEqual(scooterEstimates.map((estimate) => estimate.providerId), ['zelectra']);
+  assert.equal(scooter.length, 1);
+  assert.equal(scooter[0]?.providerId, 'zelectra');
 });
 
 const allowedZone = (rideThroughAllowed: boolean | null = null): GeofenceSnapshotForRouting => ({
@@ -77,7 +72,8 @@ test('scooter estimates require fresh same-provider start and end zones', () => 
   const options = { departureAt, maxWalkToRentalMeters: 300, maxCandidates: 6 };
   const estimates = buildScooterRouteEstimates({
     origin: { name: 'A', coordinates: [30.50, 50.45] as [number, number] }, destination: { name: 'B', coordinates: [30.52, 50.45] as [number, number] },
-    providers: [{ providerId: 'zelectra', providerName: 'Zelectra', networkId: 'zelectra-66', snapshot: allowedZone() }],
+    providers: [{ providerId: 'zelectra', providerName: 'Zelectra', networkId: 'zelectra-66', snapshot: allowedZone(),
+      assets: [{ location: [30.50, 50.45] as [number, number], available: true, vehicleTypeId: 'scooter' }] }],
     options, now: Date.parse('2026-10-16T05:00:00Z'),
   });
 
@@ -91,7 +87,8 @@ test('scooter estimates require fresh same-provider start and end zones', () => 
 test('scooter estimates reject stale geofences and routes crossing explicitly forbidden zones', () => {
   const request = {
     origin: { name: 'A', coordinates: [30.50, 50.45] as [number, number] }, destination: { name: 'B', coordinates: [30.52, 50.45] as [number, number] },
-    providers: [{ providerId: 'zelectra', providerName: 'Zelectra', networkId: 'zelectra-66', snapshot: allowedZone(false) }],
+    providers: [{ providerId: 'zelectra', providerName: 'Zelectra', networkId: 'zelectra-66', snapshot: allowedZone(false),
+      assets: [{ location: [30.50, 50.45] as [number, number], available: true, vehicleTypeId: 'scooter' }] }],
     options: { departureAt, maxWalkToRentalMeters: 300, maxCandidates: 6 },
   };
   assert.deepEqual(buildScooterRouteEstimates({ ...request, now: Date.parse('2026-10-16T05:00:00Z') }), []);
@@ -99,4 +96,22 @@ test('scooter estimates reject stale geofences and routes crossing explicitly fo
     ...request, providers: [{ ...request.providers[0]!, snapshot: { ...allowedZone(), lastUpdated: Date.parse('2026-10-16T04:00:00Z') } }],
     now: Date.parse('2026-10-16T05:00:00Z'),
   }), []);
+});
+
+test('scooter estimates require a fresh available vehicle near the selected origin', () => {
+  const request = {
+    origin: { name: 'A', coordinates: [30.50, 50.45] as [number, number] },
+    destination: { name: 'B', coordinates: [30.52, 50.45] as [number, number] },
+    providers: [{ providerId: 'zelectra', providerName: 'Zelectra', networkId: 'zelectra-66', snapshot: allowedZone(),
+      assets: [{ location: [30.50, 50.45] as [number, number], available: true, vehicleTypeId: 'scooter' }] }],
+    options: { departureAt, maxWalkToRentalMeters: 300, maxCandidates: 6 },
+    now: Date.parse('2026-10-16T05:00:00Z'),
+  };
+  assert.equal(buildScooterRouteEstimates(request).length, 1);
+  assert.deepEqual(buildScooterRouteEstimates({
+    ...request, providers: [{ ...request.providers[0]!, assets: [] }],
+  }), [], 'a zone rule without a real available vehicle must not fabricate a pickup');
+  assert.deepEqual(buildScooterRouteEstimates({
+    ...request, providers: [{ ...request.providers[0]!, assets: [{ location: [30.52, 50.45], available: true, vehicleTypeId: 'scooter' }] }],
+  }), [], 'an available scooter outside the walking pickup limit cannot serve as the origin vehicle');
 });

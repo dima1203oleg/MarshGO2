@@ -48,6 +48,19 @@ describe('transport layer network', () => {
     });
     assert.equal(network.routes[0]?.type, 'marshrutka');
   });
+  it('separates bus and marshrutka routes in one shared GTFS feed using route metadata', () => {
+    const network = buildNetwork({
+      'routes.txt': 'route_id,route_short_name,route_long_name,route_type\nbus,7,Автобус № 7,3\nminibus,8,Маршрутка № 8,3\nambiguous,9,Маршрут № 9,3\ncommunal-taxi,10,Shared taxi,1501\n',
+      'stops.txt': 'stop_id,stop_name,stop_lat,stop_lon\nA,Львів,49.84,24.03\nB,Сихів,49.80,24.07\n',
+      'trips.txt': 'route_id,trip_id,direction_id,shape_id\nbus,TB,0,\nminibus,TM,0,\nambiguous,TA,0,\ncommunal-taxi,TC,0,\n',
+      'stop_times.txt': 'trip_id,stop_id,stop_sequence\nTB,A,1\nTB,B,2\nTM,A,1\nTM,B,2\nTA,A,1\nTA,B,2\nTC,A,1\nTC,B,2\n',
+    });
+    const typeByRouteId = new Map(network.routes.map((route) => [route.id.split('|')[0], route.type]));
+    assert.equal(typeByRouteId.get('bus'), 'bus');
+    assert.equal(typeByRouteId.get('ambiguous'), 'bus');
+    assert.equal(typeByRouteId.get('minibus'), 'marshrutka');
+    assert.equal(typeByRouteId.get('communal-taxi'), 'marshrutka');
+  });
   it('keeps only valid stops that a known route serves, with the transport types serving them', () => {
     assert.deepEqual(network.stops.map((stop) => stop.id).sort(), ['A', 'B', 'C']);
     assert.deepEqual([...network.stops.find((stop) => stop.id === 'A')!.types].sort(), ['bus', 'tram']);
@@ -85,6 +98,11 @@ describe('official GeoJSON network normalization', () => {
     assert.equal(geoJsonMode('Київ — фунікулер (геометрія)'), 'funicular');
     assert.equal(geoJsonMode('Київ — міська електричка'), 'city_train');
     assert.equal(geoJsonMode('Київ — маршрутки'), 'marshrutka');
+    assert.equal(geoJsonMode('Львів — маршрутні таксі'), 'marshrutka');
+    assert.equal(geoJsonMode('Lviv — routeTaxi feed'), 'marshrutka');
+    assert.equal(geoJsonMode('Львів — minibus routes'), 'marshrutka');
+    assert.equal(geoJsonMode('Львів — автобусні маршрути'), null, 'generic route wording must not misclassify buses as minibuses');
+    assert.equal(geoJsonMode('Львів — маршрутний автобус № 5'), null, 'a bus route description is not a minibus provider feed');
   });
   it('rejects non-FeatureCollection payloads and ignores malformed/invalid coordinates', () => {
     assert.throws(() => buildGeoJsonNetwork({}, 'metro'), /FeatureCollection/);
@@ -94,6 +112,26 @@ describe('official GeoJSON network normalization', () => {
     ] }, 'metro');
     assert.equal(network.stops.length, 0);
     assert.equal(network.routes.length, 1);
+  });
+  it('keeps disjoint GeoJSON MultiLineString paths separate for provider-backed route geometry', () => {
+    const network = buildGeoJsonNetwork({ features: [
+      { id: 'route-a', geometry: { type: 'MultiLineString', coordinates: [
+        [[30.1, 50.1], [30.2, 50.2]],
+        [[30.4, 50.4], [30.5, 50.5]],
+      ] }, properties: { num_route: 'M7', napryamok: 'центр' } },
+      { geometry: { type: 'MultiLineString', coordinates: [
+        [[30.6, 50.6], [30.7, 50.7]],
+        [[30.8, 50.8], [30.9, 50.9]],
+      ] }, properties: { num_route: 'M7', napryamok: 'центр' } },
+    ] }, 'marshrutka');
+    assert.equal(network.routes.length, 4);
+    assert.ok(network.routes.every((route) => route.type === 'marshrutka' && route.geometrySource === 'provider_geojson'));
+    assert.deepEqual(network.routes.map((route) => route.coordinates), [
+      [[30.1, 50.1], [30.2, 50.2]],
+      [[30.4, 50.4], [30.5, 50.5]],
+      [[30.6, 50.6], [30.7, 50.7]],
+      [[30.8, 50.8], [30.9, 50.9]],
+    ]);
   });
 });
 

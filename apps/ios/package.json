@@ -8,7 +8,7 @@
   },
   "scripts": {
     "site:checkout": "node scripts/checkout-site.mjs",
-    "site:build": "npm run build --prefix web && npm run site:build-info",
+    "site:build": "npm run build --prefix ../site && npm run site:build-info",
     "site:build-info": "node scripts/write-build-info.mjs",
     "sync": "npx cap sync ios",
     "build:simulator": "bash scripts/build-ios-simulator.sh"

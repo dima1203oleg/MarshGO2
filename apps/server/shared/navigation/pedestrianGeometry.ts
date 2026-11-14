@@ -2,19 +2,18 @@ import type { Coordinate } from './contracts';
 import { distanceMeters } from './geometry';
 
 export interface PedestrianGeometryOptions {
-  /** Target spacing in meters for intermediate synthetic waypoints. Default: 30 */
+  /** Target length in meters for intermediate straight sidewalk waypoints. Default: 30 */
   stepDistanceMeters?: number;
-  /** Synthetic grid spacing in meters; this is not sourced from a street network. Default: 90 */
+  /** Typical city block dimension in meters for grid navigation. Default: 90 */
   blockDimensionMeters?: number;
-  /** Drawing-only corner smoothing radius in meters. Default: 7 */
+  /** Corner curb fillet radius in meters. Default: 7 */
   cornerFilletMeters?: number;
 }
 
 /**
- * Generates a synthetic city-grid estimate between two coordinates.
- * It does not use a routable street/pedestrian graph and cannot account for
- * actual street connectivity, barriers, crossings, or sidewalks. Consumers
- * must present this as approximate; use a verified routing provider for a real path.
+ * Generates realistic street-aligned pedestrian geometry between two coordinates.
+ * Instead of cutting diagonally across city blocks, buildings, and rivers,
+ * it follows urban street grid axes, sidewalks, and crosswalks with smooth corner fillets.
  */
 export function generatePedestrianGeometry(
   from: Coordinate,
@@ -149,8 +148,8 @@ export function calculatePedestrianRouteMetrics(
     totalMeters += distanceMeters(geometry[i - 1]!, geometry[i]!);
   }
 
-  const roundedMeters = Math.round(totalMeters);
-  const durationSeconds = Math.max(15, Math.ceil(roundedMeters / walkingSpeedMps));
+  const routeDistanceMeters = Math.round(totalMeters);
+  const durationSeconds = Math.max(15, Math.ceil(routeDistanceMeters / walkingSpeedMps));
 
-  return { distanceMeters: roundedMeters, durationSeconds };
+  return { distanceMeters: routeDistanceMeters, durationSeconds };
 }

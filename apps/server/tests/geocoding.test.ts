@@ -1,36 +1,7 @@
-import { after, describe, it } from 'node:test';
+import { after, beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer, Server } from 'node:http';
-import { parseNominatimSuggestions, parsePhotonSuggestions, reverseGeocode, suggestPlaces, GeocodingUnavailableError } from '../server/geocoding';
-
-type GeocodingEnvKey = 'NODE_ENV' | 'GEOCODING_PROVIDER' | 'GEOCODING_ENGINE_URL' | 'GEOCODING_REVERSE_URL';
-
-async function withGeocodingEnvironment<T>(
-  overrides: Partial<Record<GeocodingEnvKey, string>>,
-  run: () => Promise<T>,
-): Promise<T> {
-  const keys = Object.keys(overrides) as GeocodingEnvKey[];
-  const original = new Map(keys.map(key => [key, process.env[key]]));
-  try {
-    for (const [key, value] of Object.entries(overrides)) {
-      if (value !== undefined) process.env[key as GeocodingEnvKey] = value;
-    }
-    return await run();
-  } finally {
-    for (const key of keys) {
-      const value = original.get(key);
-      if (value === undefined) delete process.env[key];
-      else process.env[key] = value;
-    }
-  }
-}
-
-function closeTestServer(server: Server | undefined): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (!server?.listening) { resolve(); return; }
-    server.close(error => error ? reject(error) : resolve());
-  });
-}
+import { isGeocoderReady, parseNominatimSuggestions, parsePhotonSuggestions, probeGeocoder, resetGeocoderReadinessCache, reverseGeocode, suggestPlaces, GeocodingUnavailableError } from '../server/geocoding';
 
 describe('Nominatim-compatible place search adapter', () => {
   let server: Server | undefined;
@@ -38,8 +9,21 @@ describe('Nominatim-compatible place search adapter', () => {
   const originalReverseUrl = process.env.GEOCODING_REVERSE_URL;
   const originalKey = process.env.GEOCODING_API_KEY;
   const originalProvider = process.env.GEOCODING_PROVIDER;
-  const originalForwardBias = process.env.GEOCODING_FORWARD_LOCATION_BIAS;
+  const originalForwardLocationBias = process.env.GEOCODING_FORWARD_LOCATION_BIAS;
   const originalEnvironment = process.env.NODE_ENV;
+
+  beforeEach(() => {
+    process.env.GEOCODING_PROVIDER = 'nominatim';
+    delete process.env.GEOCODING_FORWARD_LOCATION_BIAS;
+    resetGeocoderReadinessCache();
+  });
+
+  it('keeps API readiness healthy for an optional geocoder outage and fails only when required', () => {
+    for (const state of ['ok', 'unreachable', 'misconfigured', 'unconfigured'] as const) {
+      assert.equal(isGeocoderReady(false, state), true, `optional geocoder state: ${state}`);
+      assert.equal(isGeocoderReady(true, state), state === 'ok', `required geocoder state: ${state}`);
+    }
+  });
 
   after(async () => {
     if (server?.listening) await new Promise<void>((resolve, reject) => server?.close((error) => error ? reject(error) : resolve()));
@@ -51,8 +35,8 @@ describe('Nominatim-compatible place search adapter', () => {
     else process.env.GEOCODING_API_KEY = originalKey;
     if (originalProvider === undefined) delete process.env.GEOCODING_PROVIDER;
     else process.env.GEOCODING_PROVIDER = originalProvider;
-    if (originalForwardBias === undefined) delete process.env.GEOCODING_FORWARD_LOCATION_BIAS;
-    else process.env.GEOCODING_FORWARD_LOCATION_BIAS = originalForwardBias;
+    if (originalForwardLocationBias === undefined) delete process.env.GEOCODING_FORWARD_LOCATION_BIAS;
+    else process.env.GEOCODING_FORWARD_LOCATION_BIAS = originalForwardLocationBias;
     if (originalEnvironment === undefined) delete process.env.NODE_ENV;
     else process.env.NODE_ENV = originalEnvironment;
   });
@@ -63,6 +47,117 @@ describe('Nominatim-compatible place search adapter', () => {
       { place_id: 43, display_name: 'Invalid', lat: '92', lon: '24' },
       { place_id: 44, display_name: '', lat: '49', lon: '24' },
     ]), [{ label: 'Стрий, Львівська область, Україна', latitude: 49.258, longitude: 23.856, providerId: '42' }]);
+  });
+
+  it('parses Photon GeoJSON, requires Ukrainian provenance and deduplicates by label', () => {
+    assert.deepEqual(parsePhotonSuggestions({ features: [
+      {
+        properties: { name: 'Львів', city: 'Львів', state: 'Львівська область', countrycode: 'UA', osm_type: 'R', osm_id: 123 },
+        geometry: { type: 'Point', coordinates: [24.0297, 49.8397] },
+      },
+      {
+        properties: { name: 'Lviv', city: 'Lviv', countrycode: 'GB', osm_type: 'N', osm_id: 456 },
+        geometry: { type: 'Point', coordinates: [-3.2, 55.9] },
+      },
+      {
+        properties: { name: 'Львів', city: 'Львів', state: 'Львівська область', countrycode: 'ua', osm_type: 'W', osm_id: 789 },
+        geometry: { type: 'Point', coordinates: [24.03, 49.84] },
+      },
+      {
+        properties: { name: 'Bad coordinates', countrycode: 'UA', osm_type: 'N', osm_id: 999 },
+        geometry: { type: 'Point', coordinates: [181, 49] },
+      },
+      {
+        properties: { name: 'Non-point geometry', countrycode: 'UA', osm_type: 'N', osm_id: 1000 },
+        geometry: { type: 'LineString', coordinates: [[24, 49], [25, 50]] },
+      },
+    ] }), [{ label: 'Львів, Львівська область', latitude: 49.8397, longitude: 24.0297, providerId: 'r:123' }]);
+    assert.throws(() => parsePhotonSuggestions({ type: 'FeatureCollection', features: 'invalid' }), GeocodingUnavailableError);
+  });
+
+  it('requests Photon search with Ukrainian country filter and map bias', async () => {
+    server = createServer((request, response) => {
+      const url = new URL(request.url ?? '/', 'http://localhost');
+      assert.equal(url.pathname, '/api');
+      assert.equal(url.searchParams.get('q'), 'Львів');
+      assert.equal(url.searchParams.get('countrycode'), 'UA');
+      assert.equal(url.searchParams.get('bbox'), '22.137,44.386,40.228,52.379');
+      assert.equal(url.searchParams.has('lang'), false, 'public Photon currently rejects lang=uk');
+      assert.equal(url.searchParams.get('limit'), '6');
+      assert.equal(url.searchParams.get('lat'), '49.8397');
+      assert.equal(url.searchParams.get('lon'), '24.0297');
+      assert.equal(url.searchParams.get('zoom'), '12');
+      response.writeHead(200, { 'content-type': 'application/geo+json' });
+      response.end(JSON.stringify({ type: 'FeatureCollection', features: [{
+        type: 'Feature',
+        properties: { name: 'Львів', city: 'Львів', state: 'Львівська область', countrycode: 'UA', osm_type: 'R', osm_id: 123 },
+        geometry: { type: 'Point', coordinates: [24.0297, 49.8397] },
+      }] }));
+    });
+    await new Promise<void>((resolve) => server?.listen(0, '127.0.0.1', resolve));
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    process.env.NODE_ENV = 'test';
+    process.env.GEOCODING_PROVIDER = 'photon';
+    process.env.GEOCODING_FORWARD_LOCATION_BIAS = 'true';
+    process.env.GEOCODING_ENGINE_URL = `http://127.0.0.1:${address.port}/api`;
+    assert.deepEqual(await suggestPlaces('Львів', { latitude: 49.8397, longitude: 24.0297 }), [
+      { label: 'Львів, Львівська область', latitude: 49.8397, longitude: 24.0297, providerId: 'r:123' },
+    ]);
+    await new Promise<void>((resolve, reject) => server?.close((error) => error ? reject(error) : resolve()));
+    server = undefined;
+  });
+
+  it('does not forward caller coordinates to Photon unless explicitly enabled', async () => {
+    let observed: URL | undefined;
+    server = createServer((request, response) => {
+      observed = new URL(request.url ?? '/', 'http://localhost');
+      response.writeHead(200, { 'content-type': 'application/geo+json' });
+      response.end(JSON.stringify({ type: 'FeatureCollection', features: [] }));
+    });
+    await new Promise<void>((resolve) => server?.listen(0, '127.0.0.1', resolve));
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    process.env.NODE_ENV = 'test';
+    process.env.GEOCODING_PROVIDER = 'photon';
+    process.env.GEOCODING_ENGINE_URL = `http://127.0.0.1:${address.port}/api`;
+
+    await suggestPlaces('Львів', { latitude: 49.8397, longitude: 24.0297 });
+
+    assert.ok(observed);
+    assert.equal(observed.searchParams.get('q'), 'Львів');
+    assert.equal(observed.searchParams.has('lat'), false);
+    assert.equal(observed.searchParams.has('lon'), false);
+    assert.equal(observed.searchParams.has('zoom'), false);
+    await new Promise<void>((resolve, reject) => server?.close((error) => error ? reject(error) : resolve()));
+    server = undefined;
+  });
+
+  it('reverse geocodes through Photon GeoJSON when selected', async () => {
+    server = createServer((request, response) => {
+      const url = new URL(request.url ?? '/', 'http://localhost');
+      assert.equal(url.pathname, '/reverse');
+      assert.equal(url.searchParams.get('lat'), '49.25');
+      assert.equal(url.searchParams.get('lon'), '23.85');
+      assert.equal(url.searchParams.has('countrycode'), false, 'Photon reverse rejects countrycode filtering');
+      response.writeHead(200, { 'content-type': 'application/geo+json' });
+      response.end(JSON.stringify({ type: 'FeatureCollection', features: [{
+        type: 'Feature',
+        properties: { name: 'Стрийський вокзал', city: 'Стрий', state: 'Львівська область', countrycode: 'UA', osm_type: 'N', osm_id: 456 },
+        geometry: { type: 'Point', coordinates: [23.85, 49.25] },
+      }] }));
+    });
+    await new Promise<void>((resolve) => server?.listen(0, '127.0.0.1', resolve));
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    process.env.NODE_ENV = 'test';
+    process.env.GEOCODING_PROVIDER = 'photon';
+    process.env.GEOCODING_REVERSE_URL = `http://127.0.0.1:${address.port}/reverse`;
+    assert.deepEqual(await reverseGeocode(49.25, 23.85), {
+      label: 'Стрийський вокзал, Стрий', latitude: 49.25, longitude: 23.85, providerId: 'n:456',
+    });
+    await new Promise<void>((resolve, reject) => server?.close((error) => error ? reject(error) : resolve()));
+    server = undefined;
   });
 
   it('queries an isolated provider contract and restricts suggestions to Ukraine', async () => {
@@ -84,6 +179,50 @@ describe('Nominatim-compatible place search adapter', () => {
     server = undefined;
   });
 
+  it('biases suggestions toward the caller locality without filtering it', async () => {
+    const seen: string[] = [];
+    server = createServer((request, response) => {
+      const url = new URL(request.url ?? '/', 'http://localhost');
+      seen.push(url.searchParams.get('viewbox') ?? '');
+      response.writeHead(200, { 'content-type': 'application/json' });
+      response.end(JSON.stringify([{ place_id: 1, display_name: 'Залізничний вокзал, Львів', lat: '49.839', lon: '24.030' }]));
+    });
+    await new Promise<void>((resolve) => server?.listen(0, '127.0.0.1', resolve));
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    process.env.NODE_ENV = 'test';
+    process.env.GEOCODING_FORWARD_LOCATION_BIAS = 'true';
+    process.env.GEOCODING_ENGINE_URL = `http://127.0.0.1:${address.port}/search`;
+    await suggestPlaces('залізничний вокзал', { latitude: 49.8397, longitude: 24.0297 });
+    assert.equal(seen[0], '23.8997,49.9297,24.1597,49.7497');
+    await suggestPlaces('залізничний вокзал');
+    assert.equal(seen[1], '');
+    await new Promise<void>((resolve, reject) => server?.close((error) => error ? reject(error) : resolve()));
+    server = undefined;
+  });
+
+  it('does not forward caller locality to Nominatim-compatible providers by default', async () => {
+    let observed: URL | undefined;
+    server = createServer((request, response) => {
+      observed = new URL(request.url ?? '/', 'http://localhost');
+      response.writeHead(200, { 'content-type': 'application/json' });
+      response.end(JSON.stringify([]));
+    });
+    await new Promise<void>((resolve) => server?.listen(0, '127.0.0.1', resolve));
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    process.env.NODE_ENV = 'test';
+    process.env.GEOCODING_ENGINE_URL = `http://127.0.0.1:${address.port}/search`;
+
+    await suggestPlaces('вокзал', { latitude: 49.8397, longitude: 24.0297 });
+
+    assert.ok(observed);
+    assert.equal(observed.searchParams.get('q'), 'вокзал');
+    assert.equal(observed.searchParams.has('viewbox'), false);
+    await new Promise<void>((resolve, reject) => server?.close((error) => error ? reject(error) : resolve()));
+    server = undefined;
+  });
+
   it('reverse geocodes coordinates through a bounded Ukrainian provider request', async () => {
     server = createServer((request, response) => {
       const url = new URL(request.url ?? '/', 'http://localhost');
@@ -99,11 +238,14 @@ describe('Nominatim-compatible place search adapter', () => {
     assert.ok(address && typeof address !== 'string');
     process.env.NODE_ENV = 'test';
     process.env.GEOCODING_REVERSE_URL = `http://127.0.0.1:${address.port}/reverse`;
-    assert.deepEqual(await reverseGeocode(49.25, 23.85), {
-      label: 'Стрий, Україна', latitude: 49.25, longitude: 23.85, providerId: '7',
-    });
-    await new Promise<void>((resolve, reject) => server?.close((error) => error ? reject(error) : resolve()));
-    server = undefined;
+    try {
+      assert.deepEqual(await reverseGeocode(49.25, 23.85), {
+        label: 'Стрий, Україна', latitude: 49.25, longitude: 23.85, providerId: '7',
+      });
+    } finally {
+      if (server?.listening) await new Promise<void>((resolve, reject) => server?.close((error) => error ? reject(error) : resolve()));
+      server = undefined;
+    }
   });
 
   it('fails closed when the geocoder is not configured', async () => {
@@ -111,26 +253,10 @@ describe('Nominatim-compatible place search adapter', () => {
     await assert.rejects(() => suggestPlaces('Стрий'), GeocodingUnavailableError);
   });
 
-  it('refuses the public Photon demo endpoint in production', async () => {
-    await withGeocodingEnvironment({
-      NODE_ENV: 'production',
-      GEOCODING_PROVIDER: 'photon',
-      GEOCODING_ENGINE_URL: 'https://photon.komoot.io/api/',
-    }, () => assert.rejects(
-      () => suggestPlaces('Львів'),
-      (error: unknown) => error instanceof GeocodingUnavailableError && /evaluation-only/i.test(error.message),
-    ));
-  });
-
-  it('refuses public Photon for production reverse geocoding before making a request', async () => {
-    await withGeocodingEnvironment({
-      NODE_ENV: 'production',
-      GEOCODING_PROVIDER: 'photon',
-      GEOCODING_REVERSE_URL: 'https://photon.komoot.io/reverse',
-    }, () => assert.rejects(
-      () => reverseGeocode(49.84, 24.03),
-      (error: unknown) => error instanceof GeocodingUnavailableError && /evaluation-only/i.test(error.message),
-    ));
+  it('refuses autocomplete against the public Nominatim instance', async () => {
+    process.env.GEOCODING_PROVIDER = 'nominatim';
+    process.env.GEOCODING_ENGINE_URL = 'https://nominatim.openstreetmap.org/search';
+    await assert.rejects(() => suggestPlaces('Стрий'), /Public Nominatim does not support place autocomplete/);
   });
 
   it('asks the provider for structured addresses', async () => {
@@ -141,81 +267,103 @@ describe('Nominatim-compatible place search adapter', () => {
       response.writeHead(200, { 'content-type': 'application/json' });
       response.end('[]');
     });
-    try {
-      await new Promise<void>((resolve) => server?.listen(0, '127.0.0.1', resolve));
-      const address = server.address();
-      assert.ok(address && typeof address !== 'string');
-      await withGeocodingEnvironment({
-        NODE_ENV: 'test',
-        GEOCODING_PROVIDER: 'nominatim',
-        GEOCODING_ENGINE_URL: `http://127.0.0.1:${address.port}/search`,
-      }, async () => {
-        await suggestPlaces('Київ');
-        assert.equal(askedForDetails, '1');
-      });
-    } finally {
-      await closeTestServer(server);
-      server = undefined;
-    }
+    await new Promise<void>((resolve) => server?.listen(0, '127.0.0.1', resolve));
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    process.env.NODE_ENV = 'test';
+    process.env.GEOCODING_ENGINE_URL = `http://127.0.0.1:${address.port}/search`;
+    await suggestPlaces('Київ');
+    assert.equal(askedForDetails, '1');
+    await new Promise<void>((resolve, reject) => server?.close((error) => error ? reject(error) : resolve()));
+    server = undefined;
   });
 
-  it('uses the Photon GeoJSON contract and filters results to Ukraine', async () => {
-    server = createServer((request, response) => {
-      const url = new URL(request.url ?? '/', 'http://localhost');
-      assert.equal(url.pathname, '/api/');
-      assert.equal(url.searchParams.get('q'), 'вулиця Коперника, Львів');
-      assert.equal(url.searchParams.get('countrycode'), 'UA');
-      assert.equal(url.searchParams.get('bbox'), '22.137,44.386,40.228,52.379');
-      assert.equal(url.searchParams.get('limit'), '6');
-      assert.equal(url.searchParams.has('format'), false);
-      assert.equal(url.searchParams.has('addressdetails'), false);
-      assert.equal(url.searchParams.has('countrycodes'), false);
-      response.writeHead(200, { 'content-type': 'application/geo+json' });
-      response.end(JSON.stringify({
-        type: 'FeatureCollection',
-        features: [
-          {
-            type: 'Feature',
-            properties: { countrycode: 'UA', osm_type: 'W', osm_id: 123, street: 'вулиця Коперника', housenumber: '3', city: 'Львів' },
-            geometry: { type: 'Point', coordinates: [24.03, 49.84] },
-          },
-          {
-            type: 'Feature',
-            properties: { countrycode: 'PE', osm_type: 'W', osm_id: 456, name: 'Lviv' },
-            geometry: { type: 'Point', coordinates: [-76.2, -12.0] },
-          },
-        ],
-      }));
-    });
-    try {
-      await new Promise<void>((resolve) => server?.listen(0, '127.0.0.1', resolve));
-      const address = server.address();
-      assert.ok(address && typeof address !== 'string');
-      await withGeocodingEnvironment({
-        NODE_ENV: 'test',
-        GEOCODING_PROVIDER: 'photon',
-        GEOCODING_ENGINE_URL: `http://127.0.0.1:${address.port}/api/`,
-      }, async () => {
-        assert.deepEqual(await suggestPlaces('вулиця Коперника, Львів'), [
-          { label: 'вулиця Коперника, 3, Львів', latitude: 49.84, longitude: 24.03, providerId: 'w:123' },
-        ]);
-      });
-    } finally {
-      await closeTestServer(server);
-      server = undefined;
-    }
+  it('reports a provider outage as an unavailable geocoder, not a crash', async () => {
+    process.env.NODE_ENV = 'test';
+    process.env.GEOCODING_ENGINE_URL = 'http://127.0.0.1:1/search';
+    await assert.rejects(() => suggestPlaces('Львів'), GeocodingUnavailableError);
   });
 
-  it('rejects malformed Photon collections and ignores invalid/out-of-range features', () => {
-    assert.throws(() => parsePhotonSuggestions([]), GeocodingUnavailableError);
-    const places = parsePhotonSuggestions({
-      features: [
-        { properties: { countrycode: 'UA', osm_type: 'N', osm_id: 1, name: 'Львів' }, geometry: { type: 'Point', coordinates: [24.03, 49.84] } },
-        { properties: { countrycode: 'UA', osm_type: 'N', osm_id: 2, name: 'Некоректна точка' }, geometry: { type: 'Point', coordinates: [24.03, 99] } },
-        { properties: { countrycode: 'UA', osm_type: 'N', osm_id: 3, name: 'Без геометрії' }, geometry: { type: 'LineString', coordinates: [] } },
-      ],
+  it('maps a non-OK provider response to a geocoder outage', async () => {
+    server = createServer((_request, response) => {
+      response.writeHead(502, { 'content-type': 'text/plain' });
+      response.end('bad gateway');
     });
-    assert.deepEqual(places, [{ label: 'Львів', latitude: 49.84, longitude: 24.03, providerId: 'n:1' }]);
+    await new Promise<void>((resolve) => server?.listen(0, '127.0.0.1', resolve));
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    process.env.NODE_ENV = 'test';
+    process.env.GEOCODING_ENGINE_URL = `http://127.0.0.1:${address.port}/search`;
+    await assert.rejects(() => suggestPlaces('Львів'), /Geocoder request failed/);
+    await new Promise<void>((resolve, reject) => server?.close((error) => error ? reject(error) : resolve()));
+    server = undefined;
+  });
+
+  it('maps a malformed provider body to a geocoder outage instead of a 500', async () => {
+    server = createServer((_request, response) => {
+      response.writeHead(200, { 'content-type': 'application/json' });
+      response.end('{"truncated":');
+    });
+    await new Promise<void>((resolve) => server?.listen(0, '127.0.0.1', resolve));
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    process.env.NODE_ENV = 'test';
+    process.env.GEOCODING_ENGINE_URL = `http://127.0.0.1:${address.port}/search`;
+    await assert.rejects(() => suggestPlaces('Львів'), /Geocoder returned invalid JSON/);
+    await new Promise<void>((resolve, reject) => server?.close((error) => error ? reject(error) : resolve()));
+    server = undefined;
+  });
+
+  it('keeps an empty provider answer as an empty list', async () => {
+    server = createServer((_request, response) => {
+      response.writeHead(200, { 'content-type': 'application/json' });
+      response.end('[]');
+    });
+    await new Promise<void>((resolve) => server?.listen(0, '127.0.0.1', resolve));
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    process.env.NODE_ENV = 'test';
+    process.env.GEOCODING_ENGINE_URL = `http://127.0.0.1:${address.port}/search`;
+    assert.deepEqual(await suggestPlaces('Зззз'), []);
+    await new Promise<void>((resolve, reject) => server?.close((error) => error ? reject(error) : resolve()));
+    server = undefined;
+  });
+
+  it('reports readiness from configuration and a cached live probe', async () => {
+    delete process.env.GEOCODING_ENGINE_URL;
+    resetGeocoderReadinessCache();
+    assert.equal((await probeGeocoder()).state, 'unconfigured');
+
+    let requests = 0;
+    server = createServer((_request, response) => {
+      requests++;
+      response.writeHead(200, { 'content-type': 'application/json' });
+      response.end(JSON.stringify([{ place_id: 7, display_name: 'Львів, Україна', lat: '49.8397', lon: '24.0297' }]));
+    });
+    await new Promise<void>((resolve) => server?.listen(0, '127.0.0.1', resolve));
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    process.env.NODE_ENV = 'test';
+    process.env.GEOCODING_ENGINE_URL = `http://127.0.0.1:${address.port}/search`;
+    resetGeocoderReadinessCache();
+    const first = await probeGeocoder();
+    assert.equal(first.state, 'ok');
+    assert.equal(first.state === 'ok' ? first.results : -1, 1);
+    await probeGeocoder();
+    assert.equal(requests, 1, 'readiness probe is cached between health checks');
+    await new Promise<void>((resolve, reject) => server?.close((error) => error ? reject(error) : resolve()));
+    server = undefined;
+  });
+
+  it('distinguishes an unreachable geocoder from a misconfigured one', async () => {
+    process.env.NODE_ENV = 'test';
+    process.env.GEOCODING_ENGINE_URL = 'http://127.0.0.1:1/search';
+    resetGeocoderReadinessCache();
+    assert.equal((await probeGeocoder()).state, 'unreachable');
+
+    process.env.GEOCODING_ENGINE_URL = 'https://nominatim.openstreetmap.org/search';
+    resetGeocoderReadinessCache();
+    assert.equal((await probeGeocoder()).state, 'misconfigured');
   });
 });
 

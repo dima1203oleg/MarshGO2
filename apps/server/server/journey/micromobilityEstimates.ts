@@ -60,6 +60,7 @@ export interface RouteEstimateOptions {
   maxRentalDurationSeconds?: number;
   maxCandidates?: number;
   allowedProviderIds?: readonly string[];
+  allowedProviderIdsByMode?: Partial<Record<MicromobilityMode, readonly string[]>>;
   blockedProviderIds?: readonly string[];
 }
 
@@ -72,8 +73,12 @@ export function distanceMeters(a: Point, b: Point): number {
   return 2 * EARTH_RADIUS_METERS * Math.asin(Math.sqrt(h));
 }
 
-function allowedProvider(providerId: string, options: RouteEstimateOptions): boolean {
-  return (!options.allowedProviderIds?.length || options.allowedProviderIds.includes(providerId))
+function allowedProvider(providerId: string, mode: MicromobilityMode, options: RouteEstimateOptions): boolean {
+  const scopedProviderIds = options.allowedProviderIdsByMode?.[mode];
+  const providerAllowed = scopedProviderIds !== undefined
+    ? scopedProviderIds.includes(providerId)
+    : (!options.allowedProviderIds?.length || options.allowedProviderIds.includes(providerId));
+  return providerAllowed
     && !options.blockedProviderIds?.includes(providerId);
 }
 
@@ -165,7 +170,7 @@ export function buildBicycleRouteEstimates(input: {
     if (point.mode !== 'BICYCLE' || !point.networkId || !rule || rule.networkId !== point.networkId
       || rule.compatibilityStatus !== 'CONFIRMED' || rule.returnRule !== 'ANY_NETWORK_LOCATION'
       || rule.returnRuleSource !== 'OWNER_ATTESTED' || !rule.providerIds.includes(point.providerId)
-      || !allowedProvider(point.providerId, input.options)) continue;
+      || !allowedProvider(point.providerId, 'BICYCLE', input.options)) continue;
     const group = byProvider.get(point.providerId) ?? [];
     group.push(point);
     byProvider.set(point.providerId, group);
@@ -198,6 +203,8 @@ export interface ScooterRouteProvider {
   providerName: string;
   networkId: string;
   snapshot: GeofenceSnapshotForRouting;
+  /** Current GBFS vehicles are required to establish a real pickup location. */
+  assets: Array<{ location: Point; available: boolean; vehicleTypeId?: string }>;
 }
 
 function lineSamples(a: Point, b: Point, spacingMeters = 200): Point[] {
@@ -272,7 +279,7 @@ export function buildScooterRouteEstimates(input: {
   const now = input.now ?? Date.now();
   const candidates: MicromobilityRouteEstimate[] = [];
   for (const provider of input.providers) {
-    if (!allowedProvider(provider.providerId, input.options)) continue;
+    if (!allowedProvider(provider.providerId, 'SCOOTER', input.options)) continue;
     const snapshot = provider.snapshot;
     if (snapshot.lastUpdated === null || now - snapshot.lastUpdated < -30_000
       || now - snapshot.lastUpdated > snapshot.staleAfterSeconds * 1000) continue;
@@ -282,10 +289,18 @@ export function buildScooterRouteEstimates(input: {
     ]);
     if (vehicleTypeIds.size === 0) vehicleTypeIds.add('__provider_wide__');
     for (const vehicleTypeId of vehicleTypeIds) {
-      const pickup = nearestAllowedScooterPoint({ snapshot, target: input.origin.coordinates, vehicleTypeId, operation: 'start', at: input.options.departureAt.getTime() });
+      const pickupVehicle = provider.assets
+        .filter((asset) => asset.available && (vehicleTypeId === '__provider_wide__' || asset.vehicleTypeId === vehicleTypeId))
+        .map((asset) => ({ asset, distance: distanceMeters(input.origin.coordinates, asset.location) }))
+        .filter(({ asset, distance }) => distance <= input.options.maxWalkToRentalMeters
+          && (input.options.maxWalkingMeters === undefined || distance <= input.options.maxWalkingMeters)
+          && geofenceRulesAt(snapshot, asset.location, vehicleTypeId,
+            input.options.departureAt.getTime()).rideStartAllowed === true)
+        .sort((a, b) => a.distance - b.distance)[0];
+      if (!pickupVehicle) continue;
+      const pickup = { coordinates: pickupVehicle.asset.location, distanceMeters: pickupVehicle.distance };
       const dropoff = nearestAllowedScooterPoint({ snapshot, target: input.destination.coordinates, vehicleTypeId, operation: 'end', at: input.options.departureAt.getTime() });
-      if (!pickup || !dropoff || pickup.distanceMeters > input.options.maxWalkToRentalMeters
-        || dropoff.distanceMeters > input.options.maxWalkToRentalMeters) continue;
+      if (!dropoff || dropoff.distanceMeters > input.options.maxWalkToRentalMeters) continue;
       if (lineSamples(pickup.coordinates, dropoff.coordinates, 100).slice(1, -1).some((point) =>
         geofenceRulesAt(snapshot, point, vehicleTypeId, input.options.departureAt.getTime()).rideThroughAllowed === false)) continue;
       const candidate = routeCandidate({

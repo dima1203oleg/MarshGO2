@@ -13,7 +13,7 @@ export async function testProviderConnection(provider: { id: string; name?: stri
   if (provider.source_type === 'gbfs') return testGbfsConnection(provider.id, provider.feed_url, provider.country);
   if (provider.source_type === 'gtfs') return testGtfsConnection(provider.feed_url);
   if (provider.source_type === 'gtfs_rt') return testGtfsRealtimeConnection(provider.feed_url);
-  if (provider.source_type === 'json') return testJsonVehiclesConnection(provider.feed_url, provider.country);
+  if (provider.source_type === 'json') return testJsonVehiclesConnection(provider.feed_url);
   if (provider.source_type === 'geojson') {
     const started = Date.now();
     try {
@@ -23,14 +23,15 @@ export async function testProviderConnection(provider: { id: string; name?: stri
       const valid = features.filter((feature) => {
         if (!feature || typeof feature !== 'object') return false;
         const geometry = (feature as { geometry?: { type?: string; coordinates?: unknown } }).geometry;
-        return geometry?.type === 'Point' || geometry?.type === 'LineString';
+        return geometry?.type === 'Point' || geometry?.type === 'LineString' || geometry?.type === 'MultiLineString';
       }).length;
       const mode = geoJsonMode(provider.name ?? '');
       const network = mode ? buildGeoJsonNetwork(data, mode) : null;
-      const ok = valid > 0;
+      const normalized = mode ? (network?.routes.length ?? 0) + (network?.stops.length ?? 0) : valid;
+      const ok = valid > 0 && normalized > 0;
       return { health: ok ? 'healthy' : 'degraded', sourceVersion: createHash('sha256').update(canonicalCacheJson(data)).digest('hex'), checks: [
         { name: 'GeoJSON FeatureCollection', ok: true, detail: `${features.length} features` },
-        { name: 'Supported route/station geometries', ok, detail: `${valid} usable features` },
+        { name: 'Supported route/station geometries', ok, detail: `${valid} usable features; ${normalized} normalized routes/stops` },
       ], counts: { features: features.length, ...(mode && network?.routes.length ? { [`routes_${mode}`]: network.routes.length } : {}), ...(mode && network?.stops.length ? { [`stops_${mode}`]: network.stops.length } : {}) }, responseMs: ms, ...(network?.bbox ? { bbox: network.bbox } : {}), ...(ok ? {} : { error: 'No supported GeoJSON features' }) };
     } catch (error) {
       const message = error instanceof UnsafeUrlError ? error.message : error instanceof Error ? error.message : 'GeoJSON feed is unreachable';
@@ -66,7 +67,8 @@ export async function testProviderConnection(provider: { id: string; name?: stri
 
 /** Lightweight scheduled health check; full feed downloads and schema parsing remain an explicit admin action. */
 export async function probeProviderReachability(provider: { source_type: string; feed_url: string }): Promise<ConnectionReport> {
-  if (process.env.MARSHGO_API_TEST_FIXTURE_MODE === '1' && provider.feed_url === 'https://gtfs-api-fixture.invalid/lviv.zip') {
+  if (process.env.MARSHGO_API_TEST_FIXTURE_MODE === '1'
+    && ['https://gtfs-api-fixture.invalid/lviv.zip', 'https://gtfs-api-fixture.invalid/direct-only.zip'].includes(provider.feed_url)) {
     return {
       health: 'healthy',
       checks: [

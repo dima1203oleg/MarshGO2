@@ -1,5 +1,4 @@
 import { createHash } from 'node:crypto';
-import { isPublicPhotonEvaluationEndpoint, PUBLIC_PHOTON_PRODUCTION_ERROR } from './geocodingPolicy';
 
 export type PlaceSuggestion = {
   label: string;
@@ -168,9 +167,6 @@ async function reverseGeocodeUncached(latitude: number, longitude: number): Prom
   let url: URL;
   try { url = new URL(endpoint); }
   catch { throw new GeocodingUnavailableError('Reverse geocoder endpoint is invalid'); }
-  if (process.env.NODE_ENV === 'production' && isPublicPhotonEvaluationEndpoint(url)) {
-    throw new GeocodingUnavailableError(PUBLIC_PHOTON_PRODUCTION_ERROR);
-  }
   if (url.protocol !== 'https:' && process.env.NODE_ENV === 'production') {
     throw new GeocodingUnavailableError('Production geocoder must use HTTPS');
   }
@@ -210,9 +206,6 @@ export async function suggestPlaces(query: string, bias?: PlaceBias): Promise<Pl
   catch { throw new GeocodingUnavailableError('Geocoder endpoint is invalid'); }
   const photon = process.env.GEOCODING_PROVIDER === 'photon';
   const forwardLocationBias = process.env.GEOCODING_FORWARD_LOCATION_BIAS === 'true';
-  if (process.env.NODE_ENV === 'production' && isPublicPhotonEvaluationEndpoint(url)) {
-    throw new GeocodingUnavailableError(PUBLIC_PHOTON_PRODUCTION_ERROR);
-  }
   if (!photon && url.hostname === 'nominatim.openstreetmap.org') {
     throw new GeocodingUnavailableError('Public Nominatim does not support place autocomplete; configure Photon or an approved geocoder');
   }

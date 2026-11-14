@@ -59,6 +59,7 @@ function resolveMapEnvDir(): string {
     // Plain checkout (`.git` is a directory) or no git metadata: the fallback already covers it.
   }
   candidates.push(fallback);
+  candidates.push(path.resolve(rootDir, '../..'));
   const dirs = [...new Set(candidates)];
   const chosen = dirs.find((dir) => hasMapSettings(path.join(dir, '.env')));
   if (!chosen) return fallback;

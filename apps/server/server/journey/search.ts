@@ -1,6 +1,5 @@
 import { canonicalJourneyTransportType, JOURNEY_STRATEGIES, JOURNEY_TRANSPORT_TYPES, journeyTransportTypeSelected, type JourneyPreferences, type JourneyStrategy } from './types';
 import type { TransitJourneyMode } from './gtfsTimetable';
-import type { RouteEstimateOptions } from './micromobilityEstimates';
 
 export interface JourneySearchRequest {
   origin: { name: string; coordinates: [number, number] };
@@ -34,7 +33,15 @@ export type JourneySearchPartialReason =
   | 'candidate_generation_truncated'
   | 'provider_error'
   | 'unsupported_preference'
-  | 'walking_routing_unavailable';
+  | 'walking_routing_unavailable'
+  /** Every queried GTFS feed missed the access or egress side at the effective walk radius. */
+  | 'no_stop_within_walking_distance'
+  /**
+   * Routes exist, but only through a stop outside the walking radius: the search accepted a longer
+   * walk than its own reach bound, so the journey is real while the walk to it is unusually long.
+   * Distinct from a missed side — the passenger is looking at routes, not at an empty screen.
+   */
+  | 'walk_reach_extended';
 
 /**
  * Report whether the search is incomplete because of a known limitation.
@@ -47,12 +54,16 @@ export function getJourneySearchPartialReasons(input: {
   providerErrorCount: number;
   unsupportedPreferenceCount: number;
   scheduledCandidatesNeedWalkingRouting: boolean;
+  noStopWithinWalkingDistance?: boolean | undefined;
+  walkReachExtended?: boolean | undefined;
 }): JourneySearchPartialReason[] {
   return [
     ...(input.candidateGenerationTruncated ? ['candidate_generation_truncated' as const] : []),
     ...(input.providerErrorCount > 0 ? ['provider_error' as const] : []),
     ...(input.unsupportedPreferenceCount > 0 ? ['unsupported_preference' as const] : []),
     ...(input.scheduledCandidatesNeedWalkingRouting ? ['walking_routing_unavailable' as const] : []),
+    ...(input.noStopWithinWalkingDistance ? ['no_stop_within_walking_distance' as const] : []),
+    ...(input.walkReachExtended ? ['walk_reach_extended' as const] : []),
   ];
 }
 
@@ -226,19 +237,6 @@ export function transitProviderAllowed(preferences: JourneyPreferences, transpor
   const selectedForType = category ? preferences.allowedTransitProvidersByType?.[category] : undefined;
   if (selectedForType !== undefined) return selectedForType.includes(operator);
   return !preferences.allowedTransitProviders?.length || preferences.allowedTransitProviders.includes(operator);
-}
-
-/** Per-rental-mode choices take precedence; an explicit empty list excludes that mode. */
-export function micromobilityEstimateOptions(
-  preferences: JourneyPreferences,
-  mode: 'bike' | 'scooter',
-  options: RouteEstimateOptions,
-): RouteEstimateOptions | null {
-  const selectedForMode = preferences.allowedProviderIdsByType?.[mode];
-  if (selectedForMode?.length === 0) return null;
-  if (selectedForMode !== undefined) return { ...options, allowedProviderIds: selectedForMode };
-  if (preferences.allowedProviderIds?.length) return { ...options, allowedProviderIds: preferences.allowedProviderIds };
-  return options;
 }
 
 const transportTypesByTransitMode: Record<TransitJourneyMode, readonly NonNullable<JourneyPreferences['allowedTransportTypes']>[number][]> = {

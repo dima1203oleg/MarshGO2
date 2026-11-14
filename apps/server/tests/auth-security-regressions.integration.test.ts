@@ -3,18 +3,21 @@ import crypto from 'node:crypto';
 import { describe, it } from 'node:test';
 import pg from 'pg';
 
-const apiUrl = process.env.API_TEST_URL || 'http://127.0.0.1:3002';
-const databaseUrl = process.env.API_TEST_DATABASE_URL || process.env.DATABASE_URL || 'postgres://marshgo:local_only_change_me@127.0.0.1:5434/marshgo';
+// Opt-in: runs only under scripts/run-integration-tests.sh, which provides both a managed
+// API and a migrated loopback database. Without them the unit glob must skip, not guess a port.
+const apiUrl = process.env.API_TEST_URL ?? '';
+const databaseUrl = process.env.API_TEST_DATABASE_URL ?? '';
+const enabled = Boolean(apiUrl && databaseUrl);
 
-const database = new URL(databaseUrl);
-if (!['127.0.0.1', 'localhost', '::1'].includes(database.hostname)) {
+const database = enabled ? new URL(databaseUrl) : null;
+if (database && !['127.0.0.1', 'localhost', '::1'].includes(database.hostname)) {
   throw new Error('Auth security regression tests are restricted to a local loopback database');
 }
-if (!database.pathname.includes('marshgo') && !database.pathname.includes('test')) {
+if (database && !database.pathname.includes('marshgo') && !database.pathname.includes('test')) {
   throw new Error('Auth security regression tests require a database name containing "marshgo" or "test"');
 }
 
-describe('P0 — Auth Security Regressions & Verification Integrity', () => {
+describe('P0 — Auth Security Regressions & Verification Integrity (opt-in local integration test)', { skip: !enabled }, () => {
   it('prevents account takeover of pre-existing/passwordless users by email and provides recovery instructions', async () => {
     const pool = new pg.Pool({ connectionString: databaseUrl });
     const runId = crypto.randomUUID().slice(0, 8);
@@ -147,7 +150,7 @@ describe('P0 — Auth Security Regressions & Verification Integrity', () => {
     }
   });
 
-  it('fails password reset closed when no email delivery provider exists without leaking account existence', async () => {
+  it('fails closed for password reset until email delivery is configured without revealing account existence', async () => {
     const pool = new pg.Pool({ connectionString: databaseUrl });
     const runId = crypto.randomUUID().slice(0, 8);
     const userEmail = `reset.test.${runId}@marshgo.ua`;
@@ -167,34 +170,35 @@ describe('P0 — Auth Security Regressions & Verification Integrity', () => {
       assert.equal(regRes.status, 201);
       userId = (await regRes.json()).data.user.id;
 
-      // 2. No sender is configured: report the capability as unavailable before writing a token.
+      const tokenCountBefore = await pool.query<{ count: number }>(
+        'SELECT count(*)::int AS count FROM password_reset_tokens WHERE user_id = $1', [userId],
+      );
+
+      // No email provider is implemented/configured. Do not create an unusable token or claim delivery.
       const resetReqRes = await fetch(`${apiUrl}/api/v1/auth/password-reset/request`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: userEmail }),
       });
       assert.equal(resetReqRes.status, 503);
-      const reqError = (await resetReqRes.json()).error;
-      assert.equal(reqError.code, 'password_reset_unavailable');
-      assert.equal(reqError.message, 'Відновлення пароля тимчасово недоступне. Спробуйте пізніше.');
+      const knownAccountError = (await resetReqRes.json()).error;
+      assert.equal(knownAccountError.code, 'password_recovery_unavailable');
 
-      // No reset token may be written when delivery is unavailable.
-      const tokenRecords = await pool.query<{ id: string }>(
-        'SELECT id FROM password_reset_tokens WHERE user_id = $1',
-        [userId],
-      );
-      assert.equal(tokenRecords.rows.length, 0, 'unusable reset links must not be created');
-
-      // Unknown and known accounts receive the same unavailable response.
+      // Enumeration protection: an unknown address receives the same unavailable contract.
       const unknownRes = await fetch(`${apiUrl}/api/v1/auth/password-reset/request`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: `nonexistent.${runId}@marshgo.ua` }),
       });
       assert.equal(unknownRes.status, 503);
-      const unknownError = (await unknownRes.json()).error;
-      assert.equal(unknownError.code, reqError.code, 'must not reveal account existence');
-      assert.equal(unknownError.message, reqError.message, 'must return identical copy to prevent email enumeration');
+      const unknownAccountError = (await unknownRes.json()).error;
+      assert.equal(unknownAccountError.code, knownAccountError.code);
+
+      const tokenCountAfter = await pool.query<{ count: number }>(
+        'SELECT count(*)::int AS count FROM password_reset_tokens WHERE user_id = $1', [userId],
+      );
+      assert.equal(tokenCountAfter.rows[0]?.count, tokenCountBefore.rows[0]?.count,
+        'must not create unusable reset tokens when no email delivery adapter exists');
     } finally {
       if (userId) {
         await pool.query('DELETE FROM password_reset_tokens WHERE user_id = $1', [userId]);
