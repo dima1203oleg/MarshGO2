@@ -9,6 +9,9 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
+  --mg-shell-sidebar-w: 17rem;
+  --mg-shell-rail-w: 5rem;
+  --mg-shell-content-max: 1600px;
   /* Legacy brand names resolve through the semantic ramp below. */
   --color-marshgo-navy: var(--mg-navy);
   --color-marshgo-blue: var(--mg-action);

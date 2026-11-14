@@ -1,7 +1,7 @@
 # MARSHGO2 integration record
 
 Status: **INTEGRATION CANDIDATE — NOT_RELEASED**
-Updated: 2026-11-14
+Updated: 2026-11-14 (integration review follow-up)
 Working branch: `codex/marshgo2-current-integration-20261114`
 Branch base: `87ec9584c40cdd306ba7e8e2bba052b1fdd1a4ea`
 
@@ -10,12 +10,14 @@ refreshes it from current canonical sources. It preserves application source
 files, not the individual repositories' Git histories. No production deploy,
 database write, port 7777 restart, or zrok restart is part of this integration.
 
+Current review branch head before the follow-up commit: `58822deba3b84e3f8d2b7022355c417747915fa1`.
+
 ## Source provenance
 
 | App | Canonical revision | Included work | Verification state |
 |---|---|---|---|
-| Site | `MarshGO-Site/main` `6ed4875ef8f02c5861dfe021e6baaac41b2205f3` | Qoder worktree `f88ba552c89697a0a32da582d638fad1fc075be2`: all 56 tracked working-tree edits and 32 untracked paths overlaid. This retains the route geometry/HyperFlight, compact sheet, hidden global dock on map, all transport modes, Magnetic Domino, haptic/audio feedback, place-search recovery, home-screen art and related tests. | Tests and mobile simulator acceptance pending in this monorepo. |
-| Server | Qoder A05 `248e413b2a9ee747ce3b0268ba724921b2e03501`, based exactly on merged `main` `53b8eed0a65550d1365e54c202fab5a65dd5ed58` | Includes merged Qoder CP5-A01 ordinals, CP5-A02 `TOTAL_ALL` fare basis, CP5-A03 proposal revision guard and the Qoder idempotency-key interval binding/tests from A05. Previously captured source-only files absent from current main were retained; see the preserved legacy files note below. | Merged A01/A02/A03 CI passed on `main`; A05 targeted checks still pending here. |
+| Site | `MarshGO-Site/main` `6ed4875ef8f02c5861dfe021e6baaac41b2205f3` | Qoder worktree `f88ba552c89697a0a32da582d638fad1fc075be2`: all 56 tracked working-tree edits and 32 untracked paths overlaid. This retains the route geometry/HyperFlight, compact sheet, hidden global dock on map, all transport modes, Magnetic Domino, haptic/audio feedback, place-search recovery, home-screen art and related tests. File-level comparison of all 88 changed paths found no missing Qoder paths; three integration files now add responsive-shell wiring/tokens and accessible tab names. | Responsive-shell wiring was fixed after the first CI run; rerun pending. Mobile simulator build passed in GitHub CI, but install/launch and device interaction remain pending. |
+| Server | Qoder A05 `248e413b2a9ee747ce3b0268ba724921b2e03501`, based exactly on merged `main` `53b8eed0a65550d1365e54c202fab5a65dd5ed58` | Includes merged Qoder CP5-A01 ordinals, CP5-A02 `TOTAL_ALL` fare basis, CP5-A03 proposal revision guard and the Qoder idempotency-key interval binding/tests from A05. Previously captured source-only files absent from current main were retained; see the preserved legacy files note below. | Merged A01/A02/A03 CI passed on `main`; A05 targeted checks still pending here. First monorepo CI found one old country-scope test in the snapshot that imports exports absent from current Server; it is preserved under `apps/server/legacy-tests/`, outside canonical test/typecheck globs, for a separate provider-contract review. |
 | iOS | `MarshGO-iOS/main` `309cf66f9bd718d5ee9f794d2ee72f8b70a2536f` | Current canonical Capacitor shell and simulator project. Build is rewired to the integrated `apps/site` directory rather than fetching another Site checkout. | iPhone 15 Pro Max Simulator build and launch pending. |
 | Admin | `main` `d8afa64c4efda8ce4f10557a03651943effa52a7` | Existing source snapshot. | Workspace checks pending. |
 | Partner | `main` `4d605d4353af281dd295fabf0c7c2ac05efe222e` | Existing source snapshot. | Workspace checks pending. |
@@ -60,6 +62,8 @@ separate provenance/reconciliation review before any later cleanup.
 | Cross-app contract checks | Pending. |
 | iPhone 15 Pro Max Simulator build/install/launch | Pending. |
 | Interactive application acceptance | Pending; simulation does not prove production auth, live feeds, GPS, booking or physical-device behavior. |
+
+Initial GitHub integration run `43589767277` on `58822deba3b84e3f8d2b7022355c417747915fa1` completed with: iOS Simulator compile **PASS**; Site typecheck and lint **PASS**, but Site tests were 886 pass / 6 fail because the already-imported responsive shell was not wired into the entry point, form-factor root, and screen hooks; Server typecheck **FAIL** because the preserved snapshot's `vehicle-country-scope.test.ts` targeted exports absent from current canonical Server. The responsive-shell wiring was added in the follow-up; the legacy country-scope test was preserved outside active canonical globs, with no claim that country filtering is implemented. The follow-up CI run is pending; do not interpret the initial iOS compile as simulator install/launch or user-flow acceptance.
 
 Simulator target: iPhone 15 Pro Max, iOS 27.0,
 `95861893-8B55-4A9C-B30D-C9BD1FCC4132`.
